@@ -197,7 +197,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | --- | --- | --- |
 | 0 | Spec review and planning | Done, Nov 16, 2026 |
 | 1 | Skeleton | Done, Nov 16, 2026 |
-| 2 | YouTube provider | Not started |
+| 2 | YouTube provider | Done, Nov 16, 2026 |
 | 3 | Spotify provider | Not started |
 | 4 | Core queue | Not started |
 | 5 | API | Not started |
@@ -294,3 +294,71 @@ In a terminal in the project folder:
 - No downloading exists. That starts with milestone 2.
 - The Spotify app and login are set up in milestone 3.
 - An old, dead PATH entry on this PC points to an old ffmpeg 7.1.1 folder in the user folder, a folder that no longer exists. It is harmless and was left alone.
+
+### Nov 16, 2026: Milestone 2, YouTube provider
+
+**What was done**
+
+- Committed milestone 1 to the local git repository.
+- Read the option documentation inside the installed yt-dlp 2026.10.26 before writing against it.
+- Wrote `providers/youtube.py`:
+  - `resolve` reads a video or playlist link and returns title, channel, duration, thumbnail and video ID for each item, without downloading.
+  - `download` downloads one item as audio or video, reports progress, and can be stopped.
+- Wrote `naming.py`, which turns a naming template and an item into a file path that is safe on Windows.
+- Added two terminal commands: `resolve` and `download`.
+- Added two error types to the shared provider interface: one for "this failed, here is why" and one for "stopped on request".
+
+**Decisions made by Claude Code**
+
+- **Audio "original" copies the audio stream out unchanged.** The result is usually an `.opus` file at about 128 kbps, which is the best YouTube offers. Nothing is re-encoded.
+- **mp3 is converted at 192 kbps.** Higher would only make bigger files, because the source is about 128 kbps.
+- **Video "best" takes the highest quality whatever the file type** (often `.mkv`). **"1080p" and "720p" prefer streams that fit a normal `.mp4`**, which plays everywhere. In both cases picture and sound are joined by copying, never re-encoded.
+- **A video link that contains a playlist ID downloads only that video.** Only a real playlist link downloads the whole playlist. This avoids accidentally queuing 200 videos.
+- **Channel pages and search pages are refused** with a clear message. yt-dlp would treat them as playlists with hundreds or thousands of videos.
+- **Playlists are listed in one request** instead of one request per video, so a preview appears quickly. Deleted and private videos are left out of the list.
+- **Progress is sent at most four times per second**, and for video (two files: picture and sound) it is calculated over both together, so the bar runs once from 0 to 100.
+- **Stopping keeps the partial file**, and the next download of the same item continues from there. This is the basis for pause in milestone 4.
+- **yt-dlp is loaded only when a link is first read**, so `thedownloader check` and the later app start do not pay for it.
+
+**What was tested**
+
+| Test | Result |
+| --- | --- |
+| Read a single video link | Passed |
+| Read a playlist link (17 to 19 items, three different playlists) | Passed |
+| Video link with a playlist ID in it gives the single video | Passed |
+| Removed video, unsupported site, search page, channel page | Each gives a clear one-line error |
+| Audio original (19-second video) | Passed, `.opus` |
+| Audio mp3 | Passed, `.mp3` |
+| Video 720p (10-minute video, 97.5 MB) | Passed, `.mp4` |
+| Stop at 29%, then download again | Partial file kept; resumed from 29% and finished |
+| Download an already finished file again | Skipped in 2.5 s, file not repeated |
+| First 2 items of a playlist as audio | Both downloaded, Opus at about 127 kbps |
+| File names with forbidden characters, `..`, reserved names such as `CON` | All made safe |
+
+All test downloads were deleted afterwards.
+
+**Problems found and fixed**
+
+- Search-page links were first accepted and returned 433 "items" after 16 seconds. They are now refused.
+- 720p video first came out as `.mkv`. It now prefers `.mp4`-compatible streams.
+- The standard yt-dlp test video no longer exists on YouTube. That was the video, not the app; other videos work.
+
+**How to try it**
+
+In a terminal in the project folder (replace LINK with a YouTube link in quotes):
+
+- `uv run thedownloader resolve LINK` shows what the link contains.
+- `uv run thedownloader download LINK` downloads audio in original quality.
+- `uv run thedownloader download LINK --audio-format mp3` downloads mp3.
+- `uv run thedownloader download LINK --video --quality 1080p` downloads video.
+- `uv run thedownloader download LINK --limit 3` downloads only the first 3 items of a playlist.
+
+Files land in `Downloads\THE Downloader\YouTube`.
+
+**Not done yet**
+
+- **The GitHub repository does not exist yet.** The GitHub login on this PC has expired. After `gh auth login` is run once, the repository can be created and both commits pushed.
+- Downloads run one after another in the terminal. Parallel downloads, the queue, history and duplicate skip come in milestone 4.
+- yt-dlp prints a harmless line "Unknown codec iamf.001.001.Opus" in the terminal for some videos. It comes from yt-dlp itself and will not be visible in the app window.
+- Age-restricted and members-only videos were not tested. They need a logged-in YouTube account, which the spec does not include.

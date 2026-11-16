@@ -50,6 +50,17 @@ class Progress:
     stage: str = "downloading"  # "downloading", "converting" or "tagging"
 
 
+class ProviderError(Exception):
+    """A link could not be read or an item could not be downloaded.
+
+    The message is written for the user and shown as-is.
+    """
+
+
+class Stopped(Exception):
+    """The download was stopped on request (pause or cancel). Partial files are kept."""
+
+
 class Provider(Protocol):
     name: str
 
