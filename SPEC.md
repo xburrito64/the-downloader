@@ -205,7 +205,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 3 | Spotify provider | Done, Nov 16, 2026 |
 | 4 | Core queue | Done, Nov 16, 2026 |
 | 5 | API | Done, Nov 16, 2026 |
-| 6 | Design concept | Direction approved Nov 16, 2026. Choice between the two green palettes still open |
+| 6 | Design concept | Direction approved Nov 16, 2026. Accent colour for the forest green still open |
 | 7 | UI v1 in its window | Not started |
 | 8 | Polish | Not started |
 | 9 | Repo hygiene | Not started (optional) |
@@ -803,3 +803,58 @@ Milestone 7 (building the real screens) does not start until I have approved the
 **Still open**
 
 - Forest, Emerald, or a different green.
+
+### Nov 16, 2026: Milestone 6, a deeper green and four accent options
+
+**Feedback from me**
+
+- Forest is the better of the two greens, but the green should be more vibrant, richer and deeper.
+- I do not like the yellow accent.
+- **Where the design is heading:** a forest theme, with a background that is a forest of giant trees in pixel art. The main colours will be shades of green and brown.
+- Question: which accent colours fit that? Maybe brown for now.
+
+**What was done**
+
+- Replaced the palette buttons in `design/concept.html` with four options that share one deeper, more saturated green and differ in accent and in whether cards are green or brown. The earlier Forest is kept as "Forest before" for comparison. The page opens in Redwood.
+
+Shared by all four:
+
+| Role | Colour |
+| --- | --- |
+| Screen | `#063420` |
+| Panels | `#0a4a2c` |
+| Hard shadows | `#020f08` |
+| Text | `#f8efd8` |
+| Done | `#a6f29b` |
+| Focus and links | `#8fdcf0` |
+
+The four options:
+
+| Option | Accent | Cards and keys | Idea |
+| --- | --- | --- | --- |
+| Redwood | `#ff8552` rust orange | `#743c27` bark brown | The colour of redwood bark, brightened. Orange is the opposite of green, so it stands out most naturally |
+| Foxglove | `#ff7fb6` pink | `#0f6239` green | Forest flowers and berries. The most fairy-tale of the four |
+| Sunbeam | `#ffe6c4` warm cream | `#6a4630` wood brown | Light falling through the canopy. Calm, and nothing competes with the cover art |
+| Bark | `#c07a4a` brown | `#0f6239` green | Brown as the accent, as asked, to see it for real |
+
+**Advice from Claude Code on the accent question**
+
+- **Brown works better as a material than as an accent.** In a forest of trunks, brown is the second-most common colour on screen, so a brown button has nothing to stand out against. The measurements agree: the Bark button stands out least of the four, at 4.0 to 1 against the screen and 2.2 to 1 against cards. Sunbeam's is 11.4 and 6.9; Redwood's is 5.7 and 3.6.
+- **Brown is still part of the plan.** In Redwood and Sunbeam the cards and keys are brown, like wood, which leaves the accent free to be something that stands out.
+- **Accents that suit a green and brown forest** are the things that stand out in a real one: bark-red and orange, the pinks and reds of flowers, berries and mushrooms, and pale warm light. Cool mist blue works as a quiet second colour and is already used for focus and links.
+- This is advice, not a rule. The choice is a matter of taste and is mine.
+
+**What was checked**
+
+- Text contrast was calculated for all four: the lowest pairing is 5.5 to 1 in Redwood, 5.2 in Foxglove, 5.1 in Sunbeam and 5.2 in Bark.
+- Brown cards were first almost exactly as bright as the green screen (1.2 to 1), so they separated by colour alone, which is weak for people with red-green colour blindness. The browns were lightened; cards are now 1.6 to 1.7 against the screen. The hard shadow under each card also separates them.
+
+**Not checked**
+
+- All of this was checked by calculation only. I (Claude Code) have not seen these colours on screen. Whether the green is now vibrant, rich and deep enough can only be judged by looking.
+- How the colours sit against a pixel-art forest background is unknown, because that background does not exist yet. The accent may need another look once it does.
+
+**Still open**
+
+- Which accent option, or a different direction.
+- Whether cards and keys should be green or brown.
