@@ -5,6 +5,7 @@ does not pay for loading it.
 """
 
 import re
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -16,6 +17,7 @@ _HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com"
 _VIDEO_HEIGHTS = {"1080p": 1080, "720p": 720}
 _PROGRESS_INTERVAL = 0.25  # seconds between progress updates sent onward
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
+_EXTRACT_LOCK = threading.Lock()  # see download(): keeps Deno to one copy at a time
 
 
 class _QuietLogger:
@@ -221,7 +223,19 @@ class YouTubeProvider:
 
         try:
             with yt_dlp.YoutubeDL(ydl_options) as ydl:
-                info = ydl.extract_info(item.url, download=True)
+                # Reading a video's details starts Deno, which takes up to 300 MB for a
+                # second or two. Only one download does this at a time; the downloading
+                # itself, which is the slow part, still runs in parallel.
+                while not _EXTRACT_LOCK.acquire(timeout=0.5):
+                    if should_stop():
+                        raise Stopped()
+                try:
+                    info = ydl.extract_info(item.url, download=False)
+                finally:
+                    _EXTRACT_LOCK.release()
+                if should_stop():
+                    raise Stopped()
+                info = ydl.process_ie_result(info, download=True)
         except yt_dlp.utils.DownloadCancelled as exc:
             raise Stopped() from exc
         except yt_dlp.utils.DownloadError as exc:

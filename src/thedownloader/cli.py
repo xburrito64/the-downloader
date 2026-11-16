@@ -103,9 +103,68 @@ def cmd_resolve(args: argparse.Namespace) -> int:
     return 0
 
 
+def _open_queue(settings: config.Settings, listener):
+    from .queue import DownloadQueue
+    from .store import Store
+
+    store = Store()
+    providers = {provider.name: provider for provider in _providers(settings)}
+    return store, DownloadQueue(store, providers, settings, listener)
+
+
+def _run_queue(store, queue, labels: dict[int, str]) -> int:
+    """Run the queue until it is empty, printing one line per finished item."""
+    import threading
+
+    lock = threading.Lock()
+    live: dict[int, str] = {}  # job id -> short progress text for the status line
+    counts = {"done": 0, "failed": 0}
+
+    def status_line() -> None:
+        text = "   ".join(live.values())[:110]
+        print(f"\r{text:<110}", end="", flush=True)
+
+    def listener(event: dict) -> None:
+        with lock:
+            if event["type"] == "progress":
+                name = labels.get(event["id"], str(event["id"]))[:28]
+                if event["stage"] == "downloading":
+                    live[event["id"]] = f"{name} {event['fraction']:.0%}"
+                else:
+                    live[event["id"]] = f"{name} {event['stage']}"
+                status_line()
+                return
+            job = event["job"]
+            label = labels.get(job["id"]) or _clean(job["title"])
+            if job["status"] == "done":
+                live.pop(job["id"], None)
+                counts["done"] += 1
+                print(f"\r{'':<110}\r[done]    {label}")
+            elif job["status"] == "failed":
+                live.pop(job["id"], None)
+                counts["failed"] += 1
+                print(f"\r{'':<110}\r[FAILED]  {label}: {_clean(job['error'])}")
+            elif job["status"] in ("paused", "cancelled"):
+                live.pop(job["id"], None)
+                print(f"\r{'':<110}\r[{job['status']}]  {label}")
+
+    queue._listener = listener
+    queue.start()
+    try:
+        queue.wait_until_idle()
+    except KeyboardInterrupt:
+        print(f"\r{'':<110}\rStopping. Unfinished downloads are kept and continue with: thedownloader resume")
+        queue.close()
+        store.close()
+        return 1
+    queue.close()
+    store.close()
+    print(f"\r{'':<110}\rFinished: {counts['done']} downloaded, {counts['failed']} failed.")
+    return 1 if counts["failed"] else 0
+
+
 def cmd_download(args: argparse.Namespace) -> int:
-    from . import naming
-    from .providers.base import DownloadOptions, ProviderError, Stopped
+    from .providers.base import ProviderError
 
     try:
         settings = config.load()
@@ -115,45 +174,74 @@ def cmd_download(args: argparse.Namespace) -> int:
         return 1
 
     items = resolved.items[: args.limit] if args.limit else resolved.items
-    folder = settings.output_path(provider.name)
-    template = settings.spotify_template if provider.name == "spotify" else settings.youtube_template
-    print(f"{resolved.kind.capitalize()}: {_clean(resolved.title)}  ({len(items)} to download)")
-    print(f"Saving to: {folder}\n")
+    print(f"{resolved.kind.capitalize()}: {_clean(resolved.title)}  ({len(items)} items)")
+    print(f"Saving to: {settings.output_path(provider.name)}\n")
 
-    failed = 0
-    for number, item in enumerate(items, start=1):
-        label = f"[{number}/{len(items)}] {_clean(item.title)}"
-        options = DownloadOptions(
-            mode="video" if args.video else "audio",
-            audio_format=args.audio_format,
-            video_quality=args.quality,
-            target=folder / naming.render(template, item),
-        )
+    store, queue = _open_queue(settings, None)
+    group = resolved.title if resolved.kind in ("playlist", "album") else ""
+    added = queue.add(items, "video" if args.video else "audio", args.audio_format, args.quality, group, force=args.force)
 
-        def show(progress, label=label) -> None:
-            if progress.stage == "downloading":
-                speed = f"{progress.speed_bytes_per_second / 1_048_576:.1f} MB/s"
-                print(f"\r{label}  {progress.fraction:>4.0%}  {speed}      ", end="", flush=True)
-            else:
-                print(f"\r{label}  {progress.stage}...            ", end="", flush=True)
+    labels = {}
+    skipped = 0
+    for entry in added:
+        name = _clean(f"{entry.job.artist} - {entry.job.title}" if entry.job.provider == "spotify" else entry.job.title)
+        labels[entry.job.id] = name
+        if entry.result != "queued":
+            skipped += 1
+            print(f"[skipped] {name}  ({entry.result})")
+    if skipped:
+        print(f"{skipped} skipped. Use --force to download them again.\n")
+    return _run_queue(store, queue, labels)
 
-        # One failing item must never stop the rest.
-        try:
-            path = provider.download(item, options, show, lambda: False)
-        except ProviderError as exc:
-            failed += 1
-            print(f"\r{label}  FAILED: {_clean(exc)}")
-        except Stopped:
-            print(f"\r{label}  stopped")
-            break
-        except KeyboardInterrupt:
-            print(f"\r{label}  stopped. The partial file is kept and will be resumed next time.")
-            return 1
-        else:
-            print(f"\r{label}  done -> {_clean(path.name)}            ")
 
-    print(f"\nFinished: {len(items) - failed} ok, {failed} failed.")
-    return 1 if failed else 0
+def cmd_resume(_args: argparse.Namespace) -> int:
+    """Continue everything that is paused or was interrupted."""
+    try:
+        settings = config.load()
+    except config.ConfigError as exc:
+        print(f"[ERROR] {_clean(exc)}")
+        return 1
+    store, queue = _open_queue(settings, None)
+    queue.resume_all()
+    waiting = store.count(("queued", "running"))
+    if not waiting:
+        print("Nothing is waiting.")
+        store.close()
+        return 0
+    print(f"Continuing {waiting} download(s).\n")
+    return _run_queue(store, queue, {})
+
+
+def cmd_queue(_args: argparse.Namespace) -> int:
+    from .store import ACTIVE, Store
+
+    store = Store()
+    jobs = store.list(ACTIVE)
+    store.close()
+    if not jobs:
+        print("The queue is empty.")
+        return 0
+    for job in jobs:
+        print(f"{job.id:>5}  {job.status:<8}  {_clean(job.title)}  |  {_clean(job.artist)}")
+    return 0
+
+
+def cmd_history(args: argparse.Namespace) -> int:
+    import datetime
+
+    from .store import Store
+
+    store = Store()
+    jobs = store.list(("done", "failed"), search=args.search, limit=args.show, newest_first=True)
+    store.close()
+    if not jobs:
+        print("Nothing found.")
+        return 0
+    for job in jobs:
+        when = datetime.datetime.fromtimestamp(job.finished_at).strftime("%Y-%m-%d %H:%M")
+        where = _clean(job.file_path) if job.status == "done" else f"FAILED: {_clean(job.error)}"
+        print(f"{when}  {job.provider:<8} {_clean(job.title)}  |  {_clean(job.artist)}\n{'':<18}{where}")
+    return 0
 
 
 def cmd_spotify_login(args: argparse.Namespace) -> int:
@@ -238,7 +326,15 @@ def main() -> None:
     download.add_argument("--audio-format", choices=["original", "mp3"], default="original")
     download.add_argument("--quality", choices=["best", "1080p", "720p"], default="best", help="video quality")
     download.add_argument("--limit", type=int, default=0, help="only download the first N items of a playlist")
+    download.add_argument("--force", action="store_true", help="download again even if it is already in the history")
     download.set_defaults(func=cmd_download)
+
+    sub.add_parser("resume", help="continue paused or interrupted downloads").set_defaults(func=cmd_resume)
+    sub.add_parser("queue", help="list downloads that are waiting, running or paused").set_defaults(func=cmd_queue)
+    history = sub.add_parser("history", help="list finished downloads, newest first")
+    history.add_argument("search", nargs="?", default="", help="only show entries containing this text")
+    history.add_argument("--show", type=int, default=20)
+    history.set_defaults(func=cmd_history)
 
     login = sub.add_parser("spotify-login", help="log in to Spotify in the browser")
     login.add_argument("--client-id", default="", help="client ID of your Spotify developer app (only needed once)")

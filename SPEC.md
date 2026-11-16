@@ -57,6 +57,7 @@ These apply to every milestone.
 
 - Downloads stream straight to disk. Nothing large is held in memory.
 - At most 2–3 downloads run at once (adjustable in Settings).
+- Only one download at a time reads a video's details, because that step starts Deno, which takes up to 300 MB for a second or two. The downloading itself still runs in parallel.
 - Audio is kept in its original format unless I ask for a conversion.
 - yt-dlp and other heavy libraries are loaded only when first needed, so the app starts fast.
 - Progress updates are sent to the UI a few times per second at most, not on every chunk.
@@ -202,7 +203,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 1 | Skeleton | Done, Nov 16, 2026 |
 | 2 | YouTube provider | Done, Nov 16, 2026 |
 | 3 | Spotify provider | Done, Nov 16, 2026 |
-| 4 | Core queue | Not started |
+| 4 | Core queue | Done, Nov 16, 2026 |
 | 5 | API | Not started |
 | 6 | Design concept | Not started |
 | 7 | UI v1 in its window | Not started |
@@ -474,3 +475,97 @@ The account has 154 playlists that I own; only one was read for the test. The te
 - `.m4a` tagging is still not exercised, because YouTube Music delivered Opus for every test song.
 - Reading a very large playlist (hundreds of tracks) was not tested. The largest tested had 51 entries.
 - Matching was checked on a handful of well-known songs only. How often it picks a wrong version across a whole real playlist will show in milestone 4, when full playlists are downloaded.
+
+### Nov 16, 2026: Milestone 4, core queue
+
+**What was done**
+
+- Wrote `store.py`: one SQLite table that holds both the queue and the history. A job starts as "queued" and ends as "done", "failed", "cancelled" or "skipped"; finished jobs are the history.
+- Wrote `queue.py`: worker threads that take jobs from the store, with pause, resume, cancel, retry, duplicate skip and live events for the UI.
+- Changed the `download` command to run through the queue, so downloads now run in parallel and are recorded.
+- Added terminal commands: `resume`, `queue`, `history`, and `download --force`.
+
+**Decisions made by Claude Code**
+
+- **Threads, not a separate program per download.** yt-dlp and ffmpeg block while they work, so each download gets a worker thread. Idle workers sleep and use no CPU.
+- **Queue and history are the same table.** Nothing is copied when a download finishes, and an interrupted download is never lost.
+- **Progress is never written to disk.** It changes several times per second and only matters while the app is open.
+- **Duplicates are recognised by source and ID plus audio or video.** The same video as audio and as video are two different downloads. A download is only skipped while its file still exists; a deleted file can be downloaded again. `--force` downloads again regardless.
+- **Two different items with the same name both get saved.** The second gets its ID added to the file name, for example `Intro [abc123].opus`.
+- **Pause keeps the partial file; cancel deletes it.** Both work on running and on waiting downloads.
+- **Closing the app mid-download loses nothing.** Running downloads go back to the queue and continue from the partial file at the next start. The same happens after a crash.
+- **One automatic second attempt.** A failed download is tried once more after 3 seconds before it is marked failed. An unexpected crash inside a download is not retried.
+- **Every kind of failure ends as a status on that one job.** Nothing can escape and stop a worker.
+- **Only one Deno at a time** (see "Efficiency measurements" below).
+
+**What was tested**
+
+With a simulated provider (no network, every path exercised), 35 checks, all passed:
+
+| Area | Checked |
+| --- | --- |
+| Parallel work | Never more than the set number at once, and really in parallel |
+| Failures | A failing and a crashing download are marked failed; the other 8 finish |
+| Second attempt | A download that fails once succeeds on the automatic retry |
+| Duplicates | Already downloaded, already in queue, same item twice in one list, deleted file, audio and video as separate, force |
+| Same name | Two different items named "Intro" both saved |
+| Pause and resume | Partial file kept; continues from it, not from zero |
+| Cancel and retry | Partial file deleted; cancelled and failed jobs can be retried |
+| Waiting jobs | Can be paused or cancelled before they start; a paused one does not start by itself |
+| Closing and crash | Interrupted job returns to the queue and finishes after a restart, from its partial file |
+| History | Newest first; search by title, artist and playlist name; `%` and `_` treated as plain text |
+| Idle | 0.000 s of CPU in 6 s with 3 idle workers |
+
+With real downloads through the queue (3 at a time):
+
+| Test | Result |
+| --- | --- |
+| First 6 items of a YouTube playlist as audio | 6 of 6 done in 18.4 s |
+| First 5 tracks of a Spotify album | 5 of 5 matched, downloaded and tagged in 23.6 s, all with cover |
+| Adding the same album again | All 5 skipped as already downloaded |
+| Terminal: download 2, then download 3 of the same playlist | Second run skipped 2 and downloaded 1 |
+| Terminal: `history`, `history wing`, `queue`, `resume` | All correct |
+
+All test downloads and the test history were deleted afterwards. The real history starts empty.
+
+**Efficiency measurements (first measurement point)**
+
+| What | Measured |
+| --- | --- |
+| Time until the queue is ready | 0.26 s |
+| App memory, idle, before any link is read | 30 MB |
+| App memory after yt-dlp is loaded | 67 MB |
+| App memory, peak, 3 downloads at once | 121 MB |
+| App memory, idle again afterwards | 79 MB |
+| Helper programs, peak (they exist only while working) | 291 MB |
+| Helper programs still running when idle | none |
+| Progress updates sent | about 1.4 per second across all downloads |
+| History database | 4 KB for 16 entries |
+| CPU when idle | none measurable |
+
+These numbers are for the engine only. The window and UI (milestone 7) will add their own memory, which is measured then.
+
+**Problems found and fixed**
+
+- **Helper memory peaked at 769 MB.** The cause was Deno, the JavaScript runtime yt-dlp needs for YouTube: up to 293 MB per copy, and three downloads started three copies at once. Now only one download at a time does the step that needs Deno. The peak dropped to 291 MB. The cost is speed on short files: six short downloads took 18.4 s instead of 13.2 s. For long files the difference is small, because the downloading itself still runs in parallel.
+- **One real download failed in one of three test runs**, and the reason was not captured. It did not happen again. The automatic second attempt was added because of it. Whether that attempt would have saved that particular download is not known.
+
+**Observations**
+
+- A Spotify track was matched to a recording 5 seconds longer than Spotify's in one run (176 s instead of 171 s) and to the exact one in two other runs. YouTube Music does not always return the same search results. A 5-second difference is inside what the matching accepts. Every other track matched to the exact length.
+- The app does not give memory back fully after yt-dlp has been loaded (79 MB idle afterwards, 30 MB before). That is yt-dlp staying loaded, which keeps the next download fast.
+
+**How to try it**
+
+- `uv run thedownloader download "LINK"` now downloads in parallel and records the result.
+- Run the same command again to see already downloaded items being skipped.
+- `uv run thedownloader history` lists finished downloads; `uv run thedownloader history "text"` searches them.
+- Press Ctrl+C during a download, then `uv run thedownloader resume` to continue it.
+- `uv run thedownloader queue` shows what is waiting or paused.
+
+**Not done yet**
+
+- Pause and cancel on single downloads work in the engine and are tested, but the terminal only offers "stop everything" (Ctrl+C) and `resume`. Per-item buttons come with the UI.
+- Stopping with Ctrl+C in the terminal was not tested by hand; closing mid-download was tested through the code path it uses.
+- A whole large playlist (hundreds of items) has still not been run. The largest real run was 6 items.
+- The number of parallel downloads comes from the settings file (default 2). There is no command to change it yet; the Settings screen will do that.
