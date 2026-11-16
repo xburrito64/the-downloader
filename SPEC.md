@@ -418,6 +418,7 @@ Files land in `Downloads\THE Downloader\YouTube`.
 - A cover band scored 0.99 because the original artist's name appeared in its title. Catalogue songs are now compared on the artist field only.
 - A musical-cast recording by "Killer Queen" tied with Queen at 1.00, because "Queen" is contained in that name. Artists are now compared as whole names.
 - Cover art seemed not to embed in the first test. The cause was the test image link, which refused the request; tagging itself was correct.
+- An automated security review flagged that the Spotify login file was written with default file permissions. On Windows the file sits in my user-profile folder, which other accounts on the PC cannot read anyway, so this was not exploitable here. The file and its folder are now created as owner-only regardless, which covers any other system. The login is still stored as a plain file, not in the Windows credential store; any program running under my own account could read it, as with most desktop apps.
 
 **How to try it**
 

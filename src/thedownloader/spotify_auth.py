@@ -67,9 +67,13 @@ class _CallbackHandler(BaseHTTPRequestHandler):
 
 def _save_token(token: dict) -> None:
     file = paths.spotify_token_file()
-    file.parent.mkdir(parents=True, exist_ok=True)
+    # Owner-only folder and file. On Windows the user-profile folder already keeps
+    # other accounts out; the explicit modes cover any other system.
+    file.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     tmp = file.with_suffix(".tmp")
-    tmp.write_text(json.dumps(token), encoding="utf-8")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(json.dumps(token))
     os.replace(tmp, file)
 
 
