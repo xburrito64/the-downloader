@@ -29,6 +29,27 @@ def _mime(image: bytes) -> str:
     return "image/png" if image.startswith(b"\x89PNG") else "image/jpeg"
 
 
+def _image_size(image: bytes) -> tuple[int, int]:
+    """(width, height) of a PNG or JPEG, or (0, 0) when it cannot be read."""
+    if image.startswith(b"\x89PNG\r\n\x1a\n") and len(image) >= 24:
+        return int.from_bytes(image[16:20], "big"), int.from_bytes(image[20:24], "big")
+    if image.startswith(b"\xff\xd8"):
+        position = 2
+        while position + 9 < len(image):
+            if image[position] != 0xFF:
+                position += 1
+                continue
+            marker = image[position + 1]
+            # The "start of frame" markers carry the picture size.
+            if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+                return int.from_bytes(image[position + 7 : position + 9], "big"), int.from_bytes(image[position + 5 : position + 7], "big")
+            if marker in (0xD8, 0x01) or 0xD0 <= marker <= 0xD7:
+                position += 2
+                continue
+            position += 2 + int.from_bytes(image[position + 2 : position + 4], "big")
+    return 0, 0
+
+
 def _tag_opus(path: Path, item: Item, cover: bytes | None) -> None:
     from mutagen.flac import Picture
     from mutagen.oggopus import OggOpus
@@ -48,6 +69,8 @@ def _tag_opus(path: Path, item: Item, cover: bytes | None) -> None:
         picture = Picture()
         picture.type = 3  # front cover
         picture.mime = _mime(cover)
+        picture.width, picture.height = _image_size(cover)
+        picture.depth = 24
         picture.data = cover
         audio["metadata_block_picture"] = [base64.b64encode(picture.write()).decode("ascii")]
     audio.save()

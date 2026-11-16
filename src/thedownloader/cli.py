@@ -93,7 +93,7 @@ def cmd_resolve(args: argparse.Namespace) -> int:
         return 1
 
     print(f"{resolved.kind.capitalize()}: {_clean(resolved.title)}")
-    if resolved.kind != "video":
+    if resolved.kind in ("playlist", "album"):
         print(f"{len(resolved.items)} items")
     for number, item in enumerate(resolved.items[: args.show], start=1):
         length = _duration(item.duration_seconds) if item.duration_seconds else "?"

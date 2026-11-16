@@ -112,7 +112,7 @@ class SpotifyProvider:
             if response.status_code == 403:
                 raise _Forbidden()
             if response.status_code == 404:
-                raise ProviderError("Spotify could not find this link. It may be private or deleted.")
+                raise _NotFound()
             raise ProviderError(f"Spotify answered with an error ({response.status_code}).")
 
     def _pages(self, first_url: str, params: dict) -> list[dict]:
@@ -145,6 +145,14 @@ class SpotifyProvider:
                     "Spotify does not let the app read this playlist. Only playlists you own or collaborate on can be read."
                 ) from None
             raise ProviderError("Spotify refused this request. Check that your Spotify Premium is active.") from None
+        except _NotFound:
+            if kind == "playlist":
+                # Spotify answers "not found" for playlists made by Spotify or by other people.
+                raise ProviderError(
+                    "Spotify does not show this playlist to the app. Only playlists you own or collaborate on "
+                    "can be read. If it is yours, check that the link is complete."
+                ) from None
+            raise ProviderError(f"Spotify could not find this {kind}. Check that the link is complete.") from None
 
     def _resolve_track(self, track_id: str) -> Resolved:
         item = _to_item(self._get(f"{API}/tracks/{track_id}"))
@@ -230,3 +238,7 @@ class SpotifyProvider:
 
 class _Forbidden(Exception):
     """Spotify answered 403; the caller knows which message fits."""
+
+
+class _NotFound(Exception):
+    """Spotify answered 404; the caller knows which message fits."""

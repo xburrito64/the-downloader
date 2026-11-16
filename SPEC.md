@@ -201,7 +201,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 0 | Spec review and planning | Done, Nov 16, 2026 |
 | 1 | Skeleton | Done, Nov 16, 2026 |
 | 2 | YouTube provider | Done, Nov 16, 2026 |
-| 3 | Spotify provider | Built, Nov 16, 2026. Reading real Spotify links is not tested yet (needs my Spotify app and login) |
+| 3 | Spotify provider | Done, Nov 16, 2026 |
 | 4 | Core queue | Not started |
 | 5 | API | Not started |
 | 6 | Design concept | Not started |
@@ -431,3 +431,46 @@ Files land in `Downloads\THE Downloader\YouTube`.
 - `.m4a` tagging is written but was not exercised, because YouTube Music delivered Opus for every test song.
 - Artists whose names are written in different scripts on Spotify and YouTube Music (for example Japanese and romanised) may be reported as not found. They can be picked by hand in the preview later.
 - **The GitHub repository still does not exist.** `gh auth login` is waiting for an answer in the terminal.
+
+### Nov 16, 2026: Milestone 3 confirmed against real Spotify, GitHub repository created
+
+This entry closes the open points of the entry above.
+
+**What was done**
+
+- After I logged in to GitHub again, the repository was created as **private** at https://github.com/xburrito64/the-downloader and all commits were pushed. From now on each milestone is pushed when it is done.
+- I created the Spotify developer app and gave the client ID. It is saved in the settings file outside the repo. The client secret is not used.
+- The first login attempt showed "redirect_uri: Not matching configuration". The redirect URI in my Spotify app had been entered wrongly. At the same time the app was changed to use one fixed address, `http://127.0.0.1:43117/callback`, so it is not known whether the earlier any-port approach would have worked with a correct entry. The fixed address is kept because it is the one that is confirmed to work.
+- The second login succeeded.
+
+**What was tested against the real service**
+
+| Test | Result |
+| --- | --- |
+| Browser login and stored login | Passed |
+| Read a real track | Passed in 0.5 s: title, artist, album, length, track number, year, recording code and cover all present |
+| Read the album that track is on (12 tracks) | Passed in 0.1 s, track numbers in order |
+| Read one of my own playlists (51 entries, so more than one page) | Passed in 0.4 s: 51 tracks, all with title, artist, recording code and cover |
+| A playlist made by Spotify | Refused with a clear message |
+| A track ID that does not exist | Clear message |
+| Download and tag the real track | Passed in 11.5 s: 6.0 MB `.opus`, length 354 s, exactly what Spotify lists; all tags and the cover present |
+| Startup check | Now reports Spotify as logged in |
+
+The account has 154 playlists that I own; only one was read for the test. The test download was deleted afterwards.
+
+**Problems found and fixed**
+
+- Spotify answers "not found", not "forbidden", for playlists made by Spotify or by other people. The app showed "could not find this link", which was misleading. It now says that only playlists I own or collaborate on can be read.
+- The embedded cover was stored without its width and height. Some players use these. The size is now read from the image (640 x 640 for Spotify covers) and stored.
+- A single track was listed as "1 items" in the terminal. Fixed.
+
+**Facts learned about Spotify's current behaviour**
+
+- Tracks inside an album answer come without the recording code (ISRC). Tracks read on their own or from a playlist have it. Matching does not depend on it.
+- Spotify covers are 640 x 640 JPEG files of about 100 KB.
+
+**Not done yet**
+
+- `.m4a` tagging is still not exercised, because YouTube Music delivered Opus for every test song.
+- Reading a very large playlist (hundreds of tracks) was not tested. The largest tested had 51 entries.
+- Matching was checked on a handful of well-known songs only. How often it picks a wrong version across a whole real playlist will show in milestone 4, when full playlists are downloaded.
