@@ -178,8 +178,8 @@ Each milestone is checked before the next one starts, and each one ends with an 
 4. **Core queue**: worker queue with progress events, pause, retry, cancel, SQLite history, duplicate skip.
 5. **API**: endpoints and live progress for the UI.
 6. **Design concept**: palette, fonts, one mocked-up screen and a motion sample, approved by me before any real screen is built. **This is where design work starts.**
-7. **UI v1 in its window**: Home, Queue, Library, Settings, in that order, built in the approved style.
-8. **Polish**: error messages, empty states, extra animation and art details, efficiency measurements.
+7. **UI v1 in its window**: Home, Queue, Library, Settings, in that order. Built to work, in the approved base style only: the palette, the two fonts, the cards and the basic motion from the concept. No extra art, no elaborate effects. **Design stays simple here on purpose.**
+8. **Polish, and the real design pass**: this is where the design is worked out properly, together: mascot, stamp, empty-screen pictures, extra animation and detail. Also error messages, empty states and the efficiency measurements. **This is where we go hard on design.**
 9. **Repo hygiene** (only if publishing): README, `THIRD_PARTY.md`, license, screenshots.
 
 ### Working rules for Claude Code
@@ -205,7 +205,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 3 | Spotify provider | Done, Nov 16, 2026 |
 | 4 | Core queue | Done, Nov 16, 2026 |
 | 5 | API | Done, Nov 16, 2026 |
-| 6 | Design concept | Built Nov 16, 2026. Waiting for my approval |
+| 6 | Design concept | Direction approved Nov 16, 2026. Choice between the two green palettes still open |
 | 7 | UI v1 in its window | Not started |
 | 8 | Polish | Not started |
 | 9 | Repo hygiene | Not started (optional) |
@@ -762,3 +762,44 @@ More than one palette can ship as selectable themes, because every colour is a n
 5. Anything about the direction that feels wrong.
 
 Milestone 7 (building the real screens) does not start until I have approved the concept.
+
+### Nov 16, 2026: Milestone 6, my answers
+
+**Decisions made by me**
+
+1. **Palette:** I want to try a green one, with deep and rich greens. Plum, Lagoon and Daybreak are not chosen.
+2. **Title bar:** the drawn one.
+3. **Motion:** the tilt and bounce are good for now.
+4. **My own art:** not now. The mascot, stamp and pictures are reworked together later.
+5. **How hard to go on design, and when:** keep it simple now, and go hard later, once the design has been worked out and I feel confident about it.
+
+**What was done**
+
+- Added two green palettes to `design/concept.html`. It now opens in Forest.
+
+| Role | Forest | Emerald |
+| --- | --- | --- |
+| Screen | `#0f2a1c` | `#06301f` |
+| Panels | `#173b27` | `#0a402a` |
+| Cards and keys | `#225338` | `#0f5738` |
+| Hard shadows | `#06140d` | `#01150d` |
+| Text | `#f7ecd0` | `#f4f0dc` |
+| The one accent | `#ffc247` (gold) | `#ffa3bd` (pink) |
+| Done | `#a6f29b` | `#ffe08a` |
+| Problems | `#ff8fa3` | `#ff7a66` |
+| Focus and links | `#7fd3f0` | `#86d9ff` |
+
+- **Forest** is a warm, mossy green with a gold accent. **Emerald** is a cooler jewel green with a pink accent, and uses gold for "done" so that it stands apart from the green screen.
+- Text contrast was calculated for both: the lowest pairing is 5.4 to 1 in Forest and 5.2 to 1 in Emerald.
+
+**Decision made by Claude Code**
+
+- **The build order now says in words where design effort goes.** Milestone 7 builds working screens in the base style only. Milestone 8 is the real design pass. This costs nothing later, because every colour, font, size and timing is a named token in one theme file, and the screens are built from a small set of shared parts. Restyling means changing the theme and those parts, not the screens.
+
+**Not checked**
+
+- The two greens were checked by calculation only. I have not seen them on screen; whether they look deep and rich enough is for me to judge.
+
+**Still open**
+
+- Forest, Emerald, or a different green.
