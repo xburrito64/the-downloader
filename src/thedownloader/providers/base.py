@@ -23,6 +23,10 @@ class Item:
     duration_seconds: int = 0
     cover_url: str = ""
     track_number: int = 0
+    year: str = ""
+    isrc: str = ""  # international recording code; helps find the exact same recording
+    # Spotify only: the YouTube video chosen as the audio source. Empty means "pick the best match".
+    match_id: str = ""
 
 
 @dataclass

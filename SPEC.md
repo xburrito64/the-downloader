@@ -140,15 +140,18 @@ ffmpeg and Deno are never bundled with the project.
 | --- | --- |
 | yt-dlp + yt-dlp-ejs | Downloading from YouTube. Kept updatable, never copied into the project. |
 | ytmusicapi | Searching YouTube Music to match Spotify tracks |
-| spotipy, or direct calls to the Spotify Web API | Reading my Spotify playlists, tracks and albums. Decided at milestone 3 after reading the current docs. |
+| requests | Direct calls to the Spotify Web API for my playlists, tracks and albums, and downloading cover art. spotipy is not used (decided at milestone 3). |
 | mutagen | Tagging |
 | FastAPI + uvicorn | Local API server |
 | pywebview | The app window |
 
 **Spotify setup (one time, done by me)**
 
-- Create one app in the Spotify developer dashboard (requires my Premium account) and copy its client ID into Settings.
-- Log in once from the app. The token is stored in the local config file, never in the repo.
+- Create one app in the Spotify developer dashboard at https://developer.spotify.com/dashboard (requires my Premium account).
+  - Redirect URI: exactly `http://127.0.0.1/callback`
+  - API used: Web API
+- Copy the app's client ID. The client secret is not needed and should not be given to anyone.
+- Log in once: `uv run thedownloader spotify-login --client-id MY_CLIENT_ID` (later from the Settings screen). The login token is stored in `%APPDATA%\THE Downloader\spotify.token`, never in the repo.
 
 ## 9. Licensing and repo rules (only matters if I publish)
 
@@ -198,7 +201,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 0 | Spec review and planning | Done, Nov 16, 2026 |
 | 1 | Skeleton | Done, Nov 16, 2026 |
 | 2 | YouTube provider | Done, Nov 16, 2026 |
-| 3 | Spotify provider | Not started |
+| 3 | Spotify provider | Built, Nov 16, 2026. Reading real Spotify links is not tested yet (needs my Spotify app and login) |
 | 4 | Core queue | Not started |
 | 5 | API | Not started |
 | 6 | Design concept | Not started |
@@ -363,3 +366,67 @@ Files land in `Downloads\THE Downloader\YouTube`.
 - Downloads run one after another in the terminal. Parallel downloads, the queue, history and duplicate skip come in milestone 4.
 - yt-dlp prints a harmless line "Unknown codec iamf.001.001.Opus" in the terminal for some videos. It comes from yt-dlp itself and will not be visible in the app window.
 - Age-restricted and members-only videos were not tested. They need a logged-in YouTube account, which the spec does not include.
+
+### Nov 16, 2026: Milestone 3, Spotify provider
+
+**Question from me**
+
+- A YouTube video downloaded as an `.opus` file. That is intended: the terminal command downloads audio only unless `--video` is added. The UI will have a visible audio/video switch so this is not a surprise.
+- The "'list' is not recognized" lines came from Windows, not the app: a link containing `&` must be put in quotes in the terminal. The download itself was correct.
+
+**What was done**
+
+- Read the current Spotify documentation (login flow, redirect rules, the playlist endpoint renamed in February 2026) and the documentation inside the installed ytmusicapi 1.12.3 before writing against them.
+- Added dependencies: ytmusicapi, requests and mutagen (the last two were already installed as parts of yt-dlp and are now listed explicitly).
+- Wrote `spotify_auth.py`: browser login, storing the login, and renewing it automatically.
+- Wrote `providers/spotify.py`: reads track, album and playlist links and turns them into items; downloads by matching, downloading through the YouTube provider, then tagging.
+- Wrote `matching.py`: searches YouTube Music and scores each candidate.
+- Wrote `tagging.py`: writes title, artists, album, track number, year, recording code and cover art into `.opus`, `.m4a` and `.mp3` files.
+- Added terminal commands: `spotify-login`, `spotify-logout` and `match`.
+
+**Decisions made by Claude Code**
+
+- **Direct calls to Spotify instead of the spotipy library.** Spotify renamed fields and endpoints in February 2026, and the app only needs four requests. Writing them directly avoids depending on a library keeping up.
+- **Login without a client secret** (the "PKCE" method Spotify recommends for desktop apps). Only the client ID is stored in settings. The app asks for the smallest permissions that work: reading my private and collaborative playlists.
+- **The login listens on a free local port chosen at that moment.** Spotify allows this for `127.0.0.1`, so the app cannot collide with another program using a fixed port.
+- **How a match is scored:** 45% title, 30% artist, 25% length. Bracketed notes, "- Remastered 2011" endings and "feat." parts are ignored when comparing titles.
+- **Other versions are pushed down.** If one title says live, remix, karaoke, cover, acoustic, sped up and similar and the other does not, the score drops by 0.25.
+- **A different artist is never chosen automatically.** A candidate with the right title and length but the wrong artist is a cover. It stays in the list for manual picking but is capped below the automatic threshold.
+- **Minimum score 0.60.** Below that, the track is reported as "not found" rather than downloading something doubtful.
+- **Official audio is preferred over music videos**, which often have intros and outros. Plain videos are only searched when the song catalogue has no convincing result.
+- **Podcast episodes and local files in a playlist are skipped**, because there is nothing to match.
+- **A missing cover is not an error.** The file is tagged without it.
+- **Spotify downloads are always audio**, whatever the video setting says.
+- **If Spotify says "slow down"**, the app waits when the wait is 15 seconds or less and otherwise reports how long to wait. It never retries in a loop, which is what gets apps blocked for 24 hours.
+
+**What was tested**
+
+| Test | Result |
+| --- | --- |
+| Recognising track, album and playlist links, including `intl-de` links and `spotify:` codes | Passed |
+| Refusing artist links and short `spotify.link` addresses with a clear message | Passed |
+| Login link contains every part Spotify requires | Passed |
+| Turning Spotify's answers into items, with canned data: paging, the new and the old field name, skipped episodes and local files | Passed |
+| "Not your playlist" and "not logged in" give clear messages (canned data) | Passed |
+| Real YouTube Music search for four songs | Correct recording first in all four, score 1.00 |
+| A made-up song | Reported as not found |
+| Full path with made-up Spotify data: match, download, tag, as `.opus` and as `.mp3` | Passed; tags and cover read back correctly, files still play |
+
+**Problems found and fixed**
+
+- A live version and a karaoke version first scored 0.60 and 0.59, right at the threshold. The penalty for a different version was raised; they now score 0.50 and 0.49.
+- A cover band scored 0.99 because the original artist's name appeared in its title. Catalogue songs are now compared on the artist field only.
+- A musical-cast recording by "Killer Queen" tied with Queen at 1.00, because "Queen" is contained in that name. Artists are now compared as whole names.
+- Cover art seemed not to embed in the first test. The cause was the test image link, which refused the request; tagging itself was correct.
+
+**How to try it**
+
+- `uv run thedownloader match "Queen" "Bohemian Rhapsody" --duration 354` shows the matches for a song. This works without Spotify.
+- After the Spotify setup in section 8: `uv run thedownloader resolve "SPOTIFY_LINK"` and `uv run thedownloader download "SPOTIFY_LINK"`.
+
+**Not done yet**
+
+- **Nothing has been tested against the real Spotify service**: the login, reading a real track, album or playlist, and Spotify's real error answers. This needs my Spotify developer app. Until it is tested, the milestone is built but not confirmed.
+- `.m4a` tagging is written but was not exercised, because YouTube Music delivered Opus for every test song.
+- Artists whose names are written in different scripts on Spotify and YouTube Music (for example Japanese and romanised) may be reported as not found. They can be picked by hand in the preview later.
+- **The GitHub repository still does not exist.** `gh auth login` is waiting for an answer in the terminal.

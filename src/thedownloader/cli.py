@@ -57,14 +57,14 @@ def cmd_init_config(_args: argparse.Namespace) -> int:
 
 
 def _providers(settings: config.Settings) -> list:
+    from .providers.spotify import SpotifyProvider
     from .providers.youtube import YouTubeProvider
 
-    return [
-        YouTubeProvider(
-            ffmpeg_path=startup.find_program("ffmpeg", settings.ffmpeg_path),
-            deno_path=startup.find_program("deno", settings.deno_path),
-        )
-    ]
+    youtube = YouTubeProvider(
+        ffmpeg_path=startup.find_program("ffmpeg", settings.ffmpeg_path),
+        deno_path=startup.find_program("deno", settings.deno_path),
+    )
+    return [SpotifyProvider(settings.spotify_client_id, youtube), youtube]
 
 
 def _resolve(link: str, settings: config.Settings):
@@ -74,7 +74,7 @@ def _resolve(link: str, settings: config.Settings):
     for provider in _providers(settings):
         if provider.handles(link):
             return provider, provider.resolve(link)
-    raise ProviderError("This link is not recognised. Supported right now: YouTube videos and playlists.")
+    raise ProviderError("This link is not recognised. Supported: YouTube videos and playlists, Spotify tracks, albums and playlists.")
 
 
 def _duration(seconds: int) -> str:
@@ -156,6 +156,64 @@ def cmd_download(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def cmd_spotify_login(args: argparse.Namespace) -> int:
+    from . import spotify_auth
+
+    try:
+        settings = config.load()
+    except config.ConfigError as exc:
+        print(f"[ERROR] {_clean(exc)}")
+        return 1
+    if args.client_id:
+        settings.spotify_client_id = args.client_id.strip()
+        config.save(settings)
+    if not settings.spotify_client_id:
+        print("[ERROR] No Spotify client ID is saved yet. Run: thedownloader spotify-login --client-id YOUR_CLIENT_ID")
+        return 1
+
+    print("Opening Spotify in your browser. Log in and press Agree, then come back here.")
+    try:
+        spotify_auth.login(settings.spotify_client_id)
+    except spotify_auth.SpotifyAuthError as exc:
+        print(f"[ERROR] {_clean(exc)}")
+        return 1
+    print("Logged in to Spotify.")
+    return 0
+
+
+def cmd_spotify_logout(_args: argparse.Namespace) -> int:
+    from . import spotify_auth
+
+    spotify_auth.logout()
+    print("Logged out of Spotify. The stored login was deleted.")
+    return 0
+
+
+def cmd_match(args: argparse.Namespace) -> int:
+    """Show which YouTube Music recordings would be used for a song (no Spotify login needed)."""
+    from .matching import MIN_SCORE, Matcher
+    from .providers.base import Item
+
+    item = Item("spotify", "", "", args.title, artist=args.artist, duration_seconds=args.duration)
+    try:
+        found = Matcher().candidates(item)
+    except Exception as exc:
+        print(f"[ERROR] Searching YouTube Music failed: {_clean(exc)}")
+        return 1
+    if not found:
+        print("No results.")
+        return 1
+    for number, c in enumerate(found[: args.show], start=1):
+        mark = "*" if number == 1 and c.score >= MIN_SCORE else " "
+        print(
+            f"{mark}{number:>2}. {c.score:.2f}  {_clean(c.title)}  |  {_clean(c.artist)}  |  "
+            f"{_duration(c.duration_seconds)}  |  {c.kind}  |  {_clean(c.video_id)}"
+        )
+    if found[0].score < MIN_SCORE:
+        print(f"\nNo candidate reaches the minimum score of {MIN_SCORE:.2f}; this track would be reported as not found.")
+    return 0
+
+
 def main() -> None:
     # Titles can contain characters the Windows terminal cannot show; replace instead of crashing.
     for stream in (sys.stdout, sys.stderr):
@@ -179,6 +237,18 @@ def main() -> None:
     download.add_argument("--quality", choices=["best", "1080p", "720p"], default="best", help="video quality")
     download.add_argument("--limit", type=int, default=0, help="only download the first N items of a playlist")
     download.set_defaults(func=cmd_download)
+
+    login = sub.add_parser("spotify-login", help="log in to Spotify in the browser")
+    login.add_argument("--client-id", default="", help="client ID of your Spotify developer app (only needed once)")
+    login.set_defaults(func=cmd_spotify_login)
+    sub.add_parser("spotify-logout", help="delete the stored Spotify login").set_defaults(func=cmd_spotify_logout)
+
+    match = sub.add_parser("match", help="show the YouTube Music matches for a song")
+    match.add_argument("artist")
+    match.add_argument("title")
+    match.add_argument("--duration", type=int, default=0, help="song length in seconds, if known")
+    match.add_argument("--show", type=int, default=6)
+    match.set_defaults(func=cmd_match)
 
     args = parser.parse_args()
     sys.exit(args.func(args))
