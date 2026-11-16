@@ -205,7 +205,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 3 | Spotify provider | Done, Nov 16, 2026 |
 | 4 | Core queue | Done, Nov 16, 2026 |
 | 5 | API | Done, Nov 16, 2026 |
-| 6 | Design concept | Not started |
+| 6 | Design concept | Built Nov 16, 2026. Waiting for my approval |
 | 7 | UI v1 in its window | Not started |
 | 8 | Polish | Not started |
 | 9 | Repo hygiene | Not started (optional) |
@@ -673,3 +673,92 @@ For comparison, the engine alone idles at about 22 to 30 MB; the web server adds
 - "Show in Explorer" was not run, because it opens a window on my desktop. Its refusal paths were not tested either.
 - Changing the number of parallel downloads takes effect at the next start, not immediately.
 - Stopping `serve` with Ctrl+C was not tested by hand; the 3-second limit that covers it comes from the web server's own setting.
+
+### Nov 16, 2026: Milestone 6, design concept (waiting for approval)
+
+**What was done**
+
+- Built `design/concept.html`: one self-contained page (96 KB, fonts included) that shows the proposed look on a mocked-up Home screen. It can be opened by double-clicking it. Nothing in it downloads anything.
+- Saved the two font files in `design/fonts/`.
+- The page has switches for three palettes, for "reduce motion", and a "start over" button.
+
+**The proposed concept**
+
+- **Idea:** the app is a small enchanted program on an old machine. A link goes into a slot; what comes back is dealt onto the screen as cover-art cards, and each card is stamped when it has been downloaded.
+- **Where the boldness goes:** the cards and their motion. Everything around them stays quiet.
+- **Old-computer feel** comes from a pixel typeface, hard-edged shadows without blur, chunky keys that sink when pressed, and a still scanline overlay. It does not come from anything broken or glitchy.
+
+**Colour: three palettes to choose from**
+
+| Role | Plum | Lagoon | Daybreak (light) |
+| --- | --- | --- | --- |
+| Screen | `#2b1a3f` | `#0f3239` | `#ffe4cf` |
+| Panels | `#38245a` | `#164550` | `#fff3e6` |
+| Cards and keys | `#4a3175` | `#1e5b68` | `#ffffff` |
+| Hard shadows | `#1a0f29` | `#08212a` | `#e3b89a` |
+| Text | `#ffebd0` | `#fdf1d6` | `#3b2452` |
+| The one accent | `#ffb52e` | `#ff9e6d` | `#7a4dff` |
+| Done | `#74e8b8` | `#8be8a6` | `#1faf7a` |
+| Problems | `#ff7fa8` | `#ff8fb1` | `#e8457a` |
+| Focus and links | `#6ccbff` | `#7fd8e8` | `#2b8fd6` |
+
+More than one palette can ship as selectable themes, because every colour is a named token.
+
+**Type**
+
+- **Jersey 15** for headings, buttons and numbers: a tall pixel face that stays readable when large.
+- **Nunito** for everything that is read: titles, artists, settings, messages. Rounded and warm, so the pixels stay an accent.
+- Both are bundled with the app, so no font is fetched from the internet at runtime.
+
+**Motion rules**
+
+- Things answer when touched: cards lean toward the pointer, buttons sink, the slot gulps a link.
+- One arrival: cards are dealt in once when a link is read.
+- A finished download gets stamped, with a short burst of sparks, once.
+- Nothing moves on its own. No pulsing, floating or flicker while idle.
+- "Reduce motion" turns all of it into instant changes, and the system setting for reduced motion switches it on automatically.
+- Only position, rotation, scale and opacity are animated, which is the cheap kind for the graphics card.
+
+**Where my own art can go**
+
+- The small wisp in the title bar is a placeholder mascot.
+- The "Got it" stamp, empty-screen pictures and the mascot are the natural spots for my drawings.
+- The covers and song names in the mock-up are invented and drawn with gradients. No real cover art, and nothing taken from the games used as mood references.
+
+**What was checked**
+
+| Check | Result |
+| --- | --- |
+| Both fonts load | Yes |
+| Layout at 1280 x 800 | Six cards in one row, window 592 px tall, no sideways scrolling |
+| Text contrast, all three palettes | Every pairing at least 4.8 to 1 (4.5 is the usual minimum for small text) |
+| Picking and unpicking cards, by mouse and by keyboard | Count and button label follow |
+| Pretend download | Two at a time, progress blocks fill, picked cards get stamped, unpicked ones do not |
+| Cards locked while downloading | Yes |
+| Reduce motion | All changes become instant, cards sit straight |
+| Palette switch | All colours and the swatch list follow |
+| Idle | No animation running; the stylesheet contains no repeating animation |
+
+**Problems found and fixed**
+
+- The "Spotify playlist" chip had pale text on mint and was unreadable. A broader style rule was overriding the chip's own colour.
+- Six cards were 22 px too wide for the row, so the sixth wrapped onto its own line.
+- Daybreak failed contrast in two places (2.8 and 2.9) and Lagoon was just under in one (4.4). Colours were adjusted.
+- The status bar said "0 saved" after a pretend download, and the spark pieces were never removed from the page.
+
+**What was not checked**
+
+- **I could not properly look at the finished page.** The app window was minimised or hidden for most of the work, which stops the page from being drawn, so only two screenshots succeeded. Layout, colours and behaviour were verified by measuring the page instead. How the motion actually feels can only be judged by me, by trying it.
+- In one screenshot the digit 6 on the Download button looked close to an 8. A closer look failed for the reason above. If numbers in Jersey 15 are hard to tell apart, the number font should change.
+- The narrow, phone-width layout was written but not measured. The app is a desktop window, so it matters little.
+- The font licences were not verified. Both are believed to be under the SIL Open Font License; this is part of the licence check before any public release.
+
+**Decisions waiting for me**
+
+1. Which palette, or which ones as themes.
+2. Drawn title bar, or the normal Windows one.
+3. More or less tilt and bounce.
+4. Whether I want to draw the mascot, the stamp and the empty-screen pictures myself.
+5. Anything about the direction that feels wrong.
+
+Milestone 7 (building the real screens) does not start until I have approved the concept.
