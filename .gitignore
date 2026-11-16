@@ -1,0 +1,25 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+dist/
+build/
+
+# UI build (added in milestone 6)
+node_modules/
+ui/dist/
+
+# Never commit: settings, tokens, databases, downloaded media, binaries
+config.json
+*.token
+*.sqlite
+*.sqlite-*
+downloads/
+*.exe
+*.mp3
+*.m4a
+*.opus
+*.webm
+*.mp4
+*.mkv
+*.part

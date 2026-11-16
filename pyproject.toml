@@ -1,0 +1,15 @@
+[project]
+name = "thedownloader"
+version = "0.1.0"
+description = "THE Downloader: a personal Spotify + YouTube downloader"
+requires-python = ">=3.13"
+dependencies = [
+    "yt-dlp[default]>=2026.10.26",
+]
+
+[project.scripts]
+thedownloader = "thedownloader.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.10.9,<0.11.0"]
+build-backend = "uv_build"
