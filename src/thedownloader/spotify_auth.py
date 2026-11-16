@@ -19,8 +19,11 @@ from . import paths
 
 AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
-# Registered in the Spotify dashboard without a port; Spotify allows any port on 127.0.0.1.
-REDIRECT_URI_REGISTERED = "http://127.0.0.1/callback"
+# Must be registered in the Spotify dashboard exactly like this, port included.
+# Spotify's docs say a port-less entry accepts any port, but in practice the login
+# was refused with "redirect_uri: Not matching configuration", so the port is fixed.
+REDIRECT_PORT = 43117
+REDIRECT_URI = f"http://127.0.0.1:{REDIRECT_PORT}/callback"
 SCOPES = "playlist-read-private playlist-read-collaborative"
 _LOGIN_TIMEOUT = 300  # seconds to finish the login in the browser
 _EXPIRY_MARGIN = 60  # refresh a little before the token really expires
@@ -117,10 +120,16 @@ def login(client_id: str, open_browser=webbrowser.open) -> None:
     verifier = secrets.token_urlsafe(64)
     state = secrets.token_urlsafe(16)
 
-    server = HTTPServer(("127.0.0.1", 0), _CallbackHandler)  # port 0 = any free port
+    try:
+        server = HTTPServer(("127.0.0.1", REDIRECT_PORT), _CallbackHandler)
+    except OSError as exc:
+        raise SpotifyAuthError(
+            f"Port {REDIRECT_PORT} is in use by another program, so the login cannot start. "
+            "Close a second copy of this app if one is running, then try again."
+        ) from exc
     server.result = None
     server.timeout = 1
-    redirect_uri = f"http://127.0.0.1:{server.server_port}/callback"
+    redirect_uri = REDIRECT_URI
     try:
         url = build_authorize_url(client_id, redirect_uri, state, verifier)
         if not open_browser(url):

@@ -148,7 +148,7 @@ ffmpeg and Deno are never bundled with the project.
 **Spotify setup (one time, done by me)**
 
 - Create one app in the Spotify developer dashboard at https://developer.spotify.com/dashboard (requires my Premium account).
-  - Redirect URI: exactly `http://127.0.0.1/callback`
+  - Redirect URI: exactly `http://127.0.0.1:43117/callback`
   - API used: Web API
 - Copy the app's client ID. The client secret is not needed and should not be given to anyone.
 - Log in once: `uv run thedownloader spotify-login --client-id MY_CLIENT_ID` (later from the Settings screen). The login token is stored in `%APPDATA%\THE Downloader\spotify.token`, never in the repo.
@@ -388,7 +388,7 @@ Files land in `Downloads\THE Downloader\YouTube`.
 
 - **Direct calls to Spotify instead of the spotipy library.** Spotify renamed fields and endpoints in February 2026, and the app only needs four requests. Writing them directly avoids depending on a library keeping up.
 - **Login without a client secret** (the "PKCE" method Spotify recommends for desktop apps). Only the client ID is stored in settings. The app asks for the smallest permissions that work: reading my private and collaborative playlists.
-- **The login listens on a free local port chosen at that moment.** Spotify allows this for `127.0.0.1`, so the app cannot collide with another program using a fixed port.
+- **The login listens on the fixed local port 43117.** The first version used a free port chosen at that moment, which Spotify's documentation says is allowed for `127.0.0.1`. The first real login was refused with "redirect_uri: Not matching configuration", so the port is now fixed and registered with the app exactly. If the port is ever in use, the app says so instead of failing silently.
 - **How a match is scored:** 45% title, 30% artist, 25% length. Bracketed notes, "- Remastered 2011" endings and "feat." parts are ignored when comparing titles.
 - **Other versions are pushed down.** If one title says live, remix, karaoke, cover, acoustic, sped up and similar and the other does not, the score drops by 0.25.
 - **A different artist is never chosen automatically.** A candidate with the right title and length but the wrong artist is a cover. It stays in the list for manual picking but is capped below the automatic threshold.

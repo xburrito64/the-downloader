@@ -172,6 +172,8 @@ def cmd_spotify_login(args: argparse.Namespace) -> int:
         return 1
 
     print("Opening Spotify in your browser. Log in and press Agree, then come back here.")
+    print(f"If Spotify shows 'redirect_uri: Not matching configuration', add this exact redirect URI")
+    print(f"to your app in the Spotify developer dashboard: {spotify_auth.REDIRECT_URI}")
     try:
         spotify_auth.login(settings.spotify_client_id)
     except spotify_auth.SpotifyAuthError as exc:
