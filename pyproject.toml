@@ -6,6 +6,8 @@ requires-python = ">=3.13"
 dependencies = [
     "mutagen>=1.48.1",
     "requests>=2.34.2",
+    "starlette>=1.10.0",
+    "uvicorn>=0.54.0",
     "yt-dlp[default]>=2026.10.26",
     "ytmusicapi>=1.12.3",
 ]

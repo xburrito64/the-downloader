@@ -194,6 +194,25 @@ def cmd_download(args: argparse.Namespace) -> int:
     return _run_queue(store, queue, labels)
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    from . import server
+
+    try:
+        server.serve(args.port)
+    except config.ConfigError as exc:
+        print(f"[ERROR] {_clean(exc)}")
+        return 1
+    except OSError as exc:
+        import errno
+
+        if exc.errno == errno.EADDRINUSE or getattr(exc, "winerror", None) == 10048:
+            print(f"[ERROR] Port {args.port} is already in use by another program. Leave out --port to pick a free one.")
+        else:
+            print(f"[ERROR] Could not start the server: {_clean(exc)}")
+        return 1
+    return 0
+
+
 def cmd_resume(_args: argparse.Namespace) -> int:
     """Continue everything that is paused or was interrupted."""
     try:
@@ -328,6 +347,10 @@ def main() -> None:
     download.add_argument("--limit", type=int, default=0, help="only download the first N items of a playlist")
     download.add_argument("--force", action="store_true", help="download again even if it is already in the history")
     download.set_defaults(func=cmd_download)
+
+    serve = sub.add_parser("serve", help="run the local API that the app window talks to")
+    serve.add_argument("--port", type=int, default=0, help="port to listen on (default: any free port)")
+    serve.set_defaults(func=cmd_serve)
 
     sub.add_parser("resume", help="continue paused or interrupted downloads").set_defaults(func=cmd_resume)
     sub.add_parser("queue", help="list downloads that are waiting, running or paused").set_defaults(func=cmd_queue)

@@ -35,7 +35,7 @@ One personal desktop app that downloads music from **Spotify links** (my own pla
 | --- | --- | --- |
 | Window | Native window that displays the UI | pywebview (WebView2) |
 | UI | Screens, link box, queue view, library view, settings | Svelte, built with Vite into static files |
-| API | Receives links, exposes queue, progress and settings to the UI | FastAPI + uvicorn on localhost only, server-sent events for live progress |
+| API | Receives links, exposes queue, progress and settings to the UI | Starlette + uvicorn on 127.0.0.1 only, protected by a session token, server-sent events for live progress |
 | Core | Detects link type, builds jobs, runs them in a worker queue, handles retries | Plain Python modules |
 | Providers | One module per source, same interface: `resolve(link)` then `download(item)` | `spotify` (official Web API + YouTube Music matching), `youtube` (yt-dlp) |
 | Tagging | Writes title, artist, album, cover art and track number into files | mutagen |
@@ -143,7 +143,7 @@ ffmpeg and Deno are never bundled with the project.
 | ytmusicapi | Searching YouTube Music to match Spotify tracks |
 | requests | Direct calls to the Spotify Web API for my playlists, tracks and albums, and downloading cover art. spotipy is not used (decided at milestone 3). |
 | mutagen | Tagging |
-| FastAPI + uvicorn | Local API server |
+| Starlette + uvicorn | Local API server. FastAPI was planned and dropped at milestone 5 after measuring it (13 MB more memory, half a second more startup). |
 | pywebview | The app window |
 
 **Spotify setup (one time, done by me)**
@@ -204,7 +204,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 2 | YouTube provider | Done, Nov 16, 2026 |
 | 3 | Spotify provider | Done, Nov 16, 2026 |
 | 4 | Core queue | Done, Nov 16, 2026 |
-| 5 | API | Not started |
+| 5 | API | Done, Nov 16, 2026 |
 | 6 | Design concept | Not started |
 | 7 | UI v1 in its window | Not started |
 | 8 | Polish | Not started |
@@ -569,3 +569,107 @@ These numbers are for the engine only. The window and UI (milestone 7) will add 
 - Stopping with Ctrl+C in the terminal was not tested by hand; closing mid-download was tested through the code path it uses.
 - A whole large playlist (hundreds of items) has still not been run. The largest real run was 6 items.
 - The number of parallel downloads comes from the settings file (default 2). There is no command to change it yet; the Settings screen will do that.
+
+### Nov 16, 2026: Milestone 5, API
+
+**What was done**
+
+- Wrote `api.py`: the local web interface the UI will talk to. It only translates between web requests and the engine; no download logic lives in it.
+- Wrote `server.py`: starts and stops the server. The terminal uses it now and the app window will use it in milestone 7.
+- Added the terminal command `serve`.
+
+**What the API offers**
+
+| Address | What it does |
+| --- | --- |
+| `GET /api/status` | The startup check, and whether Spotify is logged in |
+| `GET` and `PUT /api/settings` | Read and change settings |
+| `POST /api/spotify/login`, `/logout` | Start the browser login, or delete the stored login |
+| `POST /api/resolve` | Read a link and return the preview, marking items that are already downloaded or queued |
+| `GET /api/resolve/{id}/items/{n}/candidates` | The YouTube Music matches for one Spotify track |
+| `POST /api/queue` | Queue all or some items of a preview, with format, quality and hand-picked matches |
+| `GET /api/queue` | Everything waiting, running or paused |
+| `POST /api/queue/pause-all`, `/resume-all` | Pause or continue everything |
+| `POST /api/jobs/{id}/pause`, `/resume`, `/cancel`, `/retry`, `/reveal` | Act on one download; `reveal` shows the file in Explorer |
+| `GET /api/history` | Finished downloads, newest first, with search and paging |
+| `DELETE /api/history/{id}` | Remove an entry from the history; the file is not touched |
+| `GET /api/events` | Live stream of progress and status changes |
+
+**Decisions made by Claude Code**
+
+- **Starlette instead of FastAPI.** The spec named FastAPI. It was built that way first, then measured: FastAPI cost 13 MB more memory and half a second more startup than Starlette, the smaller library it is built on, for the same handful of addresses. The API was rewritten on Starlette, with the checking of incoming values written by hand. Seven packages left the project.
+- **The UI queues items by number, not by sending their details back.** The server keeps the last 20 previews in memory. This keeps requests tiny for large playlists, and means the server only ever downloads addresses it found itself.
+- **Live updates use server-sent events**, a one-way stream from server to UI. It is simpler and lighter than a two-way connection, and the UI never has to ask "anything new?".
+- **A UI that cannot keep up loses progress ticks, never status changes.**
+- **Slow work runs in worker threads**, so reading a long playlist never freezes other requests or the live stream.
+- **The last format and quality choice is saved** when something is queued.
+- **Invalid settings are refused as a whole.** Nothing is changed unless every value passes.
+- **Shutting down ends the live streams first.** Otherwise an open stream keeps the server waiting.
+
+**Security decisions**
+
+- The server listens on `127.0.0.1` only, so nothing outside this PC can reach it.
+- Every request must carry a random token created at each start. Other programs and web pages on this PC do not know it.
+- Requests that name any host other than `127.0.0.1` or `localhost` are refused. This blocks a known trick where a web page reaches a local server through a made-up domain name.
+- The built-in documentation pages are switched off.
+- "Show in Explorer" takes the file path from the history, never from the request.
+- Chosen matches must look like a YouTube video ID; folder names in settings cannot point outside the output folder.
+
+**What was tested**
+
+Against a real server on a real port, with a simulated provider: 43 checks, all passed. The same 43 passed again after the rewrite on Starlette.
+
+| Area | Checked |
+| --- | --- |
+| Access | No token, wrong token and a made-up host are refused; all 13 addresses need the token; docs pages are off |
+| Settings | Read, change, saved to the file; seven kinds of invalid value refused; a refused change leaves everything as it was |
+| Reading links | Preview, unknown link, provider error passed on as a message, empty link |
+| Queue | Select items, repeated number counted once, pause, cancel, resume, retry, unknown item, four kinds of invalid request |
+| Live events | Stream connects; progress and every status change arrive |
+| Duplicates | Preview marks what is already downloaded; "add all" queues only the new ones |
+| History | Newest first, search, paging, limits enforced, remove an entry without touching the file |
+| Memory guard | An old preview is forgotten after 20 newer ones and says so |
+| Large playlist | A 2000-item preview takes 0.05 s and is 271 KB |
+| Shutdown | With a live stream open: stops in 0.2 s, and unfinished downloads return to the queue |
+
+With the real providers behind the real server:
+
+| Test | Result |
+| --- | --- |
+| Preview and download a YouTube video | Passed |
+| Preview a Spotify track, list its 20 matches, download with a hand-picked match | Passed |
+| Live events during those downloads | 11 progress and 6 status updates, covering downloading, converting and tagging |
+| Preview of the same track afterwards | Marked as already downloaded |
+| The `serve` command | Prints address and token, answers 1.2 s after launch, refuses requests without the token, stops cleanly |
+| `serve` on a port another program holds | Clear message, no crash |
+
+All test downloads were deleted afterwards.
+
+**Efficiency measurements**
+
+| What | With FastAPI | With Starlette (now) |
+| --- | --- | --- |
+| Loading the API | 45 MB, 0.76 s | 32 MB, 0.28 s |
+| Server answering after start | 1.48 s | 0.97 s |
+| Memory, idle, server and queue running | 67 MB | 54 MB |
+| Memory, idle, after two downloads | 104 MB | 92 MB |
+| CPU in 8 idle seconds, live stream open | 0.000 s | 0.016 s |
+
+For comparison, the engine alone idles at about 22 to 30 MB; the web server adds roughly 10 MB and Starlette about 3 MB.
+
+**Problems found and fixed**
+
+- **The server could not shut down while the UI was connected.** An open live stream kept it waiting, so unfinished downloads were never put back in the queue. Shutdown now ends the streams first, and a 3-second limit covers the case where it is stopped from outside.
+- One of my own tests assumed port 1 could not be used; on this PC it can. The test was wrong, not the app. The port-in-use message was then tested properly and reworded in plain language.
+
+**How to try it**
+
+- `uv run thedownloader serve` starts the API and prints its address and token. It is meant for the UI, so there is nothing to look at in a browser yet. Press Ctrl+C to stop it.
+
+**Not done yet**
+
+- **Cover thumbnails are not cached on disk yet.** The spec's efficiency rules call for it. For now the preview and queue hand out the original image addresses from Spotify and YouTube. The cache is built with the UI in milestone 7, where its effect can be measured.
+- The Spotify login through the API was not run end to end. It uses the same login function that was tested for real in milestone 3; only the address that starts it is new.
+- "Show in Explorer" was not run, because it opens a window on my desktop. Its refusal paths were not tested either.
+- Changing the number of parallel downloads takes effect at the next start, not immediately.
+- Stopping `serve` with Ctrl+C was not tested by hand; the 3-second limit that covers it comes from the web server's own setting.
