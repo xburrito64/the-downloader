@@ -1,0 +1,63 @@
+/* Shared building blocks. Colours and timings come from theme.css only. */
+
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; }
+body { margin: 0; overflow: hidden; background: var(--base); color: var(--ink); font: 500 16px/1.5 var(--font-body); user-select: none; }
+h1, h2, h3, h4, p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+input { user-select: text; }
+:focus-visible { outline: 3px solid var(--sky); outline-offset: 3px; }
+
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-thumb { background: var(--raised); border-radius: 6px; border: 3px solid var(--base); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* a small pressable key */
+.key {
+  border: 0; cursor: pointer; padding: 7px 14px 8px; border-radius: var(--r-s); white-space: nowrap;
+  background: var(--panel); color: var(--ink); font-weight: 700; font-size: 14px;
+  box-shadow: 0 4px 0 var(--edge); transition: transform var(--quick), box-shadow var(--quick);
+}
+.key:hover { transform: translateY(-1px); box-shadow: 0 5px 0 var(--edge); }
+.key:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
+.key[disabled] { opacity: .5; cursor: default; transform: none; box-shadow: 0 4px 0 var(--edge); }
+.screen > .key, .head .key, .field .key, .line .key { background: var(--raised); }
+
+/* the big accent button */
+.big {
+  border: 0; cursor: pointer; padding: 12px 26px 14px; border-radius: var(--r-m); background: var(--accent); color: var(--accent-ink);
+  font: 400 30px/1 var(--font-display); letter-spacing: .5px; white-space: nowrap;
+  box-shadow: 0 6px 0 var(--edge); transition: transform var(--quick), box-shadow var(--quick);
+}
+.big:hover { transform: translateY(-2px); box-shadow: 0 8px 0 var(--edge); }
+.big:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--edge); }
+.big[disabled] { background: var(--raised); color: var(--ink-soft); cursor: default; transform: none; box-shadow: 0 6px 0 var(--edge); }
+
+/* a row of either/or choices */
+.seg { display: inline-flex; background: var(--edge); border-radius: var(--r-m); padding: 4px; gap: 4px; }
+.seg button { border: 0; cursor: pointer; background: none; padding: 7px 15px; border-radius: 10px; font-weight: 800; color: var(--ink-soft); transition: transform var(--settle) var(--spring); }
+.seg button[aria-pressed="true"] { background: var(--raised); color: var(--ink); }
+.seg button:active { transform: scale(.92); transition-duration: 80ms; }
+
+/* text boxes */
+.well {
+  width: 100%; min-width: 0; padding: 11px 14px; border-radius: var(--r-s); border: 3px solid var(--raised);
+  background: var(--edge); color: var(--ink); font-weight: 600; transition: border-color var(--quick);
+}
+.well::placeholder { color: var(--ink-soft); opacity: .8; }
+.well:focus { border-color: var(--accent); outline: none; }
+
+/* every screen */
+.screen { padding: 22px 20px 14px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; min-height: 0; height: 100%; }
+.head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-right: 10px; }
+.head h1 { font: 400 40px/1 var(--font-display); letter-spacing: .5px; margin-right: auto; }
+.head .sub { color: var(--ink-soft); }
+.empty { color: var(--ink-soft); max-width: 52ch; padding-top: 8px; }
+.empty strong { color: var(--ink); display: block; font: 400 30px/1.1 var(--font-display); margin-bottom: 6px; }
+.problem { color: var(--rose); font-weight: 700; }
+
+/* "reduce motion": everything changes instantly */
+.calm *, .calm *::before, .calm *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}

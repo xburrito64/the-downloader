@@ -1,10 +1,10 @@
-# Spec: THE Downloader
+﻿# Spec: THE Downloader
 
 A Spotify + YouTube downloader app. Version 2 of the spec, rewritten Nov 16, 2026 after a review of the first draft.
 
 This file is the single source of truth for the project. It has two parts:
 
-- **Sections 1–11** describe what is being built and why.
+- **Sections 1â€“11** describe what is being built and why.
 - **Section 12 (Development log)** records every step of development as it happens. It is updated at the end of each milestone, and whenever a decision changes.
 
 ## 1. Goal
@@ -56,7 +56,7 @@ The provider interface is the important part. Adding a third source later (for e
 These apply to every milestone.
 
 - Downloads stream straight to disk. Nothing large is held in memory.
-- At most 2–3 downloads run at once (adjustable in Settings).
+- At most 2â€“3 downloads run at once (adjustable in Settings).
 - Only one download at a time reads a video's details, because that step starts Deno, which takes up to 300 MB for a second or two. The downloading itself still runs in parallel.
 - Audio is kept in its original format unless I ask for a conversion.
 - yt-dlp and other heavy libraries are loaded only when first needed, so the app starts fast.
@@ -118,7 +118,7 @@ Rules that keep this compatible with the efficiency goal:
 - A "reduce motion" switch in Settings turns the game-like motion down.
 - All colours, fonts, spacing and motion timings live in one theme file so the look is easy to change.
 
-**When design work starts:** at milestone 6, not before. Milestones 1–5 have no visuals at all. Milestone 6 begins with a style concept (palette, fonts, one mocked-up screen, a motion sample) that I approve before any real screen is built. Collecting references and sketching ideas earlier is fine; building design earlier is not, because the screens depend on what the engine can actually report.
+**When design work starts:** at milestone 6, not before. Milestones 1â€“5 have no visuals at all. Milestone 6 begins with a style concept (palette, fonts, one mocked-up screen, a motion sample) that I approve before any real screen is built. Collecting references and sketching ideas earlier is fine; building design earlier is not, because the screens depend on what the engine can actually report.
 
 ## 8. Requirements and dependencies
 
@@ -206,7 +206,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 4 | Core queue | Done, Nov 16, 2026 |
 | 5 | API | Done, Nov 16, 2026 |
 | 6 | Design concept | Direction approved Nov 16, 2026. Accent: Foxglove for now. Green rebuilt from a reference image, waiting for a yes |
-| 7 | UI v1 in its window | Not started |
+| 7 | UI v1 in its window | In progress: screens work in a browser test, the real window is untested |
 | 8 | Polish | Not started |
 | 9 | Repo hygiene | Not started (optional) |
 
@@ -914,4 +914,37 @@ So "more vibrant" meant two things: **less blue in the green, and nearly twice a
 
 **Still open**
 
-- Whether this green is right now.
+- Whether this green is right now. (Answered in the next entry: no, the earlier deep green stays.)
+
+### Nov 16, 2026: Milestone 7, UI v1 (in progress, not finished)
+
+**Decision by me**
+
+- The earlier deep green (`#063420`) was better after all. It stays, with the Foxglove pink accent. The lighter leaf green is kept in `design/concept.html` only as "Leaf green (tried)".
+
+**What was built**
+
+- `ui/`: the window's screens, written in Svelte and built with Vite into `ui/dist` (`npm install`, then `npm run build`, inside `ui`). Home, Queue, Library and Settings, in the base style only. All colours, fonts and timings are in `ui/src/theme.css`.
+- Long lists only build the rows that are on screen (`VirtualGrid`).
+- `covers.py`: the on-disk cover thumbnail cache. Each cover is fetched once, shrunk to 256 pixels by ffmpeg and reused. Only picture servers of Spotify and YouTube are ever contacted.
+- The engine now also serves the UI files and the covers. A new setting, `reduce_motion`.
+- `window.py` and the command `uv run thedownloader app`: the app in its own window (pywebview), with a drawn title bar. A window without a frame cannot be resized by its edges on Windows, so there is a grip in the bottom-right corner.
+
+**Decisions by Claude Code**
+
+- No image library was added for thumbnails; ffmpeg is installed anyway.
+- The "reduce motion" switch is stored by the engine, because the window forgets everything between starts.
+- Choosing a different YouTube match for a Spotify song is not in the UI yet.
+
+**What was tested (in a browser tab against the real engine)**
+
+- All four screens show up without errors.
+- A real YouTube video was read, downloaded and went from Home through the Queue into the Library, with live updates.
+- A playlist of 208 videos: only 30 cards exist on screen at a time, covers load.
+
+**Not tested yet**
+
+- **The real window** (`uv run thedownloader app`) has never been opened: title bar buttons, dragging, the resize grip and the folder picker are all untried.
+- Spotify links, pause/resume/cancel, search, saving settings and Spotify login through the UI.
+- The 35 queue checks and 43 API checks were not re-run after the engine changes.
+- No memory or CPU measurements yet.

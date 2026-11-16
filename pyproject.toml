@@ -5,6 +5,7 @@ description = "THE Downloader: a personal Spotify + YouTube downloader"
 requires-python = ">=3.13"
 dependencies = [
     "mutagen>=1.48.1",
+    "pywebview>=6.2.1",
     "requests>=2.34.2",
     "starlette>=1.10.0",
     "uvicorn>=0.54.0",
@@ -14,6 +15,10 @@ dependencies = [
 
 [project.scripts]
 thedownloader = "thedownloader.cli:main"
+
+[project.gui-scripts]
+# Starts the app window without a terminal window behind it.
+thedownloader-app = "thedownloader.window:main"
 
 [build-system]
 requires = ["uv_build>=0.10.9,<0.11.0"]

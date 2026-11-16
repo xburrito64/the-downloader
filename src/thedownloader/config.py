@@ -34,6 +34,9 @@ class Settings:
 
     spotify_client_id: str = ""
 
+    # Turns the game-like motion in the window into plain instant changes
+    reduce_motion: bool = False
+
     def output_path(self, provider: str) -> Path:
         sub = self.spotify_subdir if provider == "spotify" else self.youtube_subdir
         return Path(self.output_dir) / sub
@@ -56,7 +59,8 @@ def load(file: Path | None = None) -> Settings:
     for key, value in raw.items():
         expected = known.get(key)
         # Skip unknown keys and values of the wrong type; the default is used instead.
-        if expected is not None and isinstance(value, expected) and not isinstance(value, bool):
+        # (In Python True counts as a number, so yes/no values are checked separately.)
+        if expected is not None and isinstance(value, expected) and isinstance(value, bool) == (expected is bool):
             values[key] = value
     return Settings(**values)
 

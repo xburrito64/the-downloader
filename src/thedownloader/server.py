@@ -2,8 +2,9 @@
 
 import secrets
 import socket
+from pathlib import Path
 
-from . import config, startup
+from . import config, covers, startup
 from .api import AppState, create_app
 from .store import Store
 
@@ -13,12 +14,20 @@ def build_state(token: str | None = None) -> AppState:
     from .providers.youtube import YouTubeProvider
 
     settings = config.load()
+    ffmpeg = startup.find_program("ffmpeg", settings.ffmpeg_path)
     youtube = YouTubeProvider(
-        ffmpeg_path=startup.find_program("ffmpeg", settings.ffmpeg_path),
+        ffmpeg_path=ffmpeg,
         deno_path=startup.find_program("deno", settings.deno_path),
     )
     providers = [SpotifyProvider(settings.spotify_client_id, youtube), youtube]
-    return AppState(settings, Store(), providers, token or secrets.token_urlsafe(32))
+    covers.prune()
+    return AppState(settings, Store(), providers, token or secrets.token_urlsafe(32),
+                    ffmpeg_path=ffmpeg, ui_dir=ui_dir())
+
+
+def ui_dir() -> Path:
+    """Where the built UI files are (made by `npm run build` in the ui folder)."""
+    return Path(__file__).resolve().parents[2] / "ui" / "dist"
 
 
 def open_socket(port: int = 0) -> socket.socket:

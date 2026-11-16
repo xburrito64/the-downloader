@@ -22,10 +22,11 @@ from pathlib import Path
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
-from starlette.responses import JSONResponse, StreamingResponse
-from starlette.routing import Route
+from starlette.responses import FileResponse, JSONResponse, Response, StreamingResponse
+from starlette.routing import Mount, Route
+from starlette.staticfiles import StaticFiles
 
-from . import APP_NAME, config, spotify_auth, startup
+from . import APP_NAME, config, covers, spotify_auth, startup
 from .providers.base import ProviderError, Resolved
 from .queue import DownloadQueue
 from .store import ACTIVE, Store
@@ -110,9 +111,12 @@ class AppState:
     """Everything the endpoints share."""
 
     def __init__(self, settings: config.Settings, store: Store, providers: list, token: str,
-                 settings_file: Path | None = None) -> None:
+                 settings_file: Path | None = None, ffmpeg_path: str | None = None,
+                 ui_dir: Path | None = None) -> None:
         self.settings = settings
         self.settings_file = settings_file
+        self.ffmpeg_path = ffmpeg_path  # used to shrink cover pictures
+        self.ui_dir = ui_dir  # the built UI files; None when only the API is wanted
         self.store = store
         self.providers = providers
         self.token = token
@@ -175,7 +179,7 @@ def _apply_settings(settings: config.Settings, body: dict) -> None:
         expected = _SETTING_TYPES.get(key)
         if expected is None or value is None:
             continue  # unknown keys are ignored, like in the settings file
-        if isinstance(value, bool) or not isinstance(value, expected):
+        if isinstance(value, bool) != (expected is bool) or not isinstance(value, expected):
             raise ApiError(422, f"{key} has the wrong kind of value.")
         changes[key] = value.strip() if isinstance(value, str) else value
 
@@ -466,6 +470,29 @@ def create_app(state: AppState) -> Starlette:
         return StreamingResponse(stream(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
+    # ---- cover pictures and the UI's own files ---------------------------
+
+    async def cover(request: Request):
+        try:
+            check_access(request)
+        except ApiError as exc:
+            return JSONResponse({"detail": exc.detail}, status_code=exc.status)
+        path = await run_in_threadpool(covers.thumbnail, request.query_params.get("u", ""), state.ffmpeg_path)
+        if path is None:
+            return Response(status_code=404)
+        # A cover never changes, so the window may keep it and never ask again.
+        return FileResponse(path, media_type="image/jpeg",
+                            headers={"Cache-Control": "private, max-age=31536000, immutable"})
+
+    async def index(_request: Request):
+        # The page itself holds no secrets: the token arrives separately, in the window's address.
+        # The policy line forbids the page from loading or contacting anything outside this app.
+        policy = ("default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+                  "font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'")
+        return FileResponse(state.ui_dir / "index.html", media_type="text/html",
+                            headers={"Cache-Control": "no-cache", "Content-Security-Policy": policy,
+                                     "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"})
+
     @asynccontextmanager
     async def lifespan(_app: Starlette):
         state.hub.attach(asyncio.get_running_loop())
@@ -490,5 +517,9 @@ def create_app(state: AppState) -> Starlette:
         route("/api/history", "GET", history),
         route("/api/history/{job_id:int}", "DELETE", forget),
         Route("/api/events", events, methods=["GET"]),
+        Route("/api/cover", cover, methods=["GET"]),
     ]
+    if state.ui_dir is not None and (state.ui_dir / "index.html").is_file():
+        routes.append(Route("/", index, methods=["GET"]))
+        routes.append(Mount("/assets", StaticFiles(directory=state.ui_dir / "assets")))
     return Starlette(routes=routes, lifespan=lifespan)

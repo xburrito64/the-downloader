@@ -1,0 +1,32 @@
+/* The theme file: every colour, font, size and motion timing of the app lives here.
+   Change the look by changing these values; no screen has colours of its own. */
+
+@font-face { font-family: "Jersey 15"; src: url("./fonts/jersey-15-latin-400.woff2") format("woff2"); font-display: block; }
+@font-face { font-family: "Nunito"; src: url("./fonts/nunito-latin-variable.woff2") format("woff2"); font-weight: 200 1000; font-display: block; }
+
+:root {
+  /* Foxglove on the deep forest green (approved Nov 16, 2026) */
+  --desk: #021209;       /* behind everything */
+  --base: #063420;       /* the screen */
+  --panel: #0a4a2c;      /* title bar, side rail, status bar */
+  --raised: #0f6239;     /* cards and keys */
+  --edge: #020f08;       /* hard shadows and input wells */
+  --ink: #f8efd8;        /* text */
+  --ink-soft: #bfe0c8;   /* quieter text */
+  --accent: #ff7fb6;     /* the one loud colour */
+  --accent-ink: #3a0a22; /* text on the accent */
+  --good: #a6f29b;       /* done */
+  --on-good: #020f08;
+  --rose: #ff7a66;       /* problems */
+  --sky: #8fdcf0;        /* focus ring and links */
+  --scan: rgba(0, 10, 5, .12);
+
+  --font-display: "Jersey 15", "Courier New", monospace;
+  --font-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+
+  --r-s: 8px; --r-m: 14px; --r-l: 22px;
+
+  --spring: cubic-bezier(.34, 1.56, .64, 1); /* overshoots, then settles */
+  --quick: 120ms;
+  --settle: 480ms;
+}

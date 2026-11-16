@@ -213,6 +213,17 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_app(args: argparse.Namespace) -> int:
+    from . import window
+
+    try:
+        window.run(debug=args.debug)
+    except config.ConfigError as exc:
+        print(f"[ERROR] {_clean(exc)}")
+        return 1
+    return 0
+
+
 def cmd_resume(_args: argparse.Namespace) -> int:
     """Continue everything that is paused or was interrupted."""
     try:
@@ -351,6 +362,10 @@ def main() -> None:
     serve = sub.add_parser("serve", help="run the local API that the app window talks to")
     serve.add_argument("--port", type=int, default=0, help="port to listen on (default: any free port)")
     serve.set_defaults(func=cmd_serve)
+
+    app = sub.add_parser("app", help="open the app window")
+    app.add_argument("--debug", action="store_true", help="open the window with developer tools")
+    app.set_defaults(func=cmd_app)
 
     sub.add_parser("resume", help="continue paused or interrupted downloads").set_defaults(func=cmd_resume)
     sub.add_parser("queue", help="list downloads that are waiting, running or paused").set_defaults(func=cmd_queue)
