@@ -343,6 +343,7 @@ All test downloads were deleted afterwards.
 - Search-page links were first accepted and returned 433 "items" after 16 seconds. They are now refused.
 - 720p video first came out as `.mkv`. It now prefers `.mp4`-compatible streams.
 - The standard yt-dlp test video no longer exists on YouTube. That was the video, not the app; other videos work.
+- An automated security review of the milestone 2 commit flagged that video titles were printed to the terminal unfiltered. A title containing terminal control codes could have moved the cursor or rewritten earlier output. All text from the internet now has control characters removed before it is printed, and file names have them removed too. Fixed in a follow-up commit.
 
 **How to try it**
 

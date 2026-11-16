@@ -5,7 +5,7 @@ from pathlib import Path, PurePosixPath
 
 from .providers.base import Item
 
-_FORBIDDEN = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+_FORBIDDEN = re.compile(r'[<>:"/\\|?*\x00-\x1f\x7f-\x9f]')
 _RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
 _MAX_PART_LENGTH = 120
 

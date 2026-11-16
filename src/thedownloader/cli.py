@@ -1,9 +1,22 @@
 """Terminal entry point. Used to test each milestone before the UI exists."""
 
 import argparse
+import re
 import sys
 
 from . import APP_NAME, config, paths, startup
+
+
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+
+def _clean(text: object) -> str:
+    """Remove control characters from text that came from the internet.
+
+    A video title could otherwise carry terminal escape codes that move the
+    cursor, recolour the screen or rewrite what was printed before.
+    """
+    return _CONTROL_CHARS.sub("", str(text))
 
 
 def cmd_check(_args: argparse.Namespace) -> int:
@@ -76,15 +89,15 @@ def cmd_resolve(args: argparse.Namespace) -> int:
     try:
         _provider, resolved = _resolve(args.link, config.load())
     except (ProviderError, config.ConfigError) as exc:
-        print(f"[ERROR] {exc}")
+        print(f"[ERROR] {_clean(exc)}")
         return 1
 
-    print(f"{resolved.kind.capitalize()}: {resolved.title}")
+    print(f"{resolved.kind.capitalize()}: {_clean(resolved.title)}")
     if resolved.kind != "video":
         print(f"{len(resolved.items)} items")
     for number, item in enumerate(resolved.items[: args.show], start=1):
         length = _duration(item.duration_seconds) if item.duration_seconds else "?"
-        print(f"{number:>4}. {item.title}  |  {item.artist}  |  {length}  |  {item.source_id}")
+        print(f"{number:>4}. {_clean(item.title)}  |  {_clean(item.artist)}  |  {length}  |  {_clean(item.source_id)}")
     if len(resolved.items) > args.show:
         print(f"      ... and {len(resolved.items) - args.show} more")
     return 0
@@ -98,18 +111,18 @@ def cmd_download(args: argparse.Namespace) -> int:
         settings = config.load()
         provider, resolved = _resolve(args.link, settings)
     except (ProviderError, config.ConfigError) as exc:
-        print(f"[ERROR] {exc}")
+        print(f"[ERROR] {_clean(exc)}")
         return 1
 
     items = resolved.items[: args.limit] if args.limit else resolved.items
     folder = settings.output_path(provider.name)
     template = settings.spotify_template if provider.name == "spotify" else settings.youtube_template
-    print(f"{resolved.kind.capitalize()}: {resolved.title}  ({len(items)} to download)")
+    print(f"{resolved.kind.capitalize()}: {_clean(resolved.title)}  ({len(items)} to download)")
     print(f"Saving to: {folder}\n")
 
     failed = 0
     for number, item in enumerate(items, start=1):
-        label = f"[{number}/{len(items)}] {item.title}"
+        label = f"[{number}/{len(items)}] {_clean(item.title)}"
         options = DownloadOptions(
             mode="video" if args.video else "audio",
             audio_format=args.audio_format,
@@ -129,7 +142,7 @@ def cmd_download(args: argparse.Namespace) -> int:
             path = provider.download(item, options, show, lambda: False)
         except ProviderError as exc:
             failed += 1
-            print(f"\r{label}  FAILED: {exc}")
+            print(f"\r{label}  FAILED: {_clean(exc)}")
         except Stopped:
             print(f"\r{label}  stopped")
             break
@@ -137,7 +150,7 @@ def cmd_download(args: argparse.Namespace) -> int:
             print(f"\r{label}  stopped. The partial file is kept and will be resumed next time.")
             return 1
         else:
-            print(f"\r{label}  done -> {path.name}            ")
+            print(f"\r{label}  done -> {_clean(path.name)}            ")
 
     print(f"\nFinished: {len(items) - failed} ok, {failed} failed.")
     return 1 if failed else 0
