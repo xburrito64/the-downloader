@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="redwood">
+<html lang="en" data-theme="foxglove">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,15 +16,21 @@
   --spring: cubic-bezier(.34, 1.56, .64, 1);   /* overshoots, then settles */
   --quick: 120ms; --settle: 480ms;
 }
-/* four accent ideas on one deeper, more saturated forest green */
+/* leaf green measured from the owner's reference image (#18501c), four accent ideas on it */
 [data-theme="redwood"], [data-theme="foxglove"], [data-theme="sunbeam"], [data-theme="bark"] {
-  --desk: #021209; --base: #063420; --panel: #0a4a2c; --edge: #020f08;
-  --ink: #f8efd8; --good: #a6f29b; --on-good: #020f08; --sky: #8fdcf0; --scan: rgba(0, 10, 5, .12);
+  --desk: #0a260d; --base: #18501c; --panel: #1f6424; --edge: #071c09;
+  --ink: #f8efd8; --good: #b4f7a6; --on-good: #071c09; --sky: #a5e4f5; --scan: rgba(0, 12, 2, .12);
 }
-[data-theme="redwood"]  { --raised: #743c27; --ink-soft: #e0cbb2; --accent: #ff8552; --accent-ink: #2a1208; --rose: #ff6b81; }
-[data-theme="foxglove"] { --raised: #0f6239; --ink-soft: #bfe0c8; --accent: #ff7fb6; --accent-ink: #3a0a22; --rose: #ff7a66; }
-[data-theme="sunbeam"]  { --raised: #6a4630; --ink-soft: #dcc9b0; --accent: #ffe6c4; --accent-ink: #063420; --rose: #ff8a7a; }
-[data-theme="bark"]     { --raised: #0f6239; --ink-soft: #bfe0c8; --accent: #c07a4a; --accent-ink: #1f0f06; --rose: #ff7a66; }
+[data-theme="redwood"]  { --raised: #7d4129; --ink-soft: #ead8c2; --accent: #ff9a6b; --accent-ink: #2a1208; --rose: #ffa3b0; }
+[data-theme="foxglove"] { --raised: #236d29; --ink-soft: #d9f0d6; --accent: #ff8fc0; --accent-ink: #3a0a22; --rose: #ffc2b8; }
+[data-theme="sunbeam"]  { --raised: #734c33; --ink-soft: #e6d6c0; --accent: #ffe6c4; --accent-ink: #18501c; --rose: #ffb0a3; }
+[data-theme="bark"]     { --raised: #236d29; --ink-soft: #d9f0d6; --accent: #d08a58; --accent-ink: #1f0f06; --rose: #ffc2b8; }
+/* the darker, bluer green from the round before, kept only to compare */
+[data-theme="foxglove-before"] {
+  --desk: #021209; --base: #063420; --panel: #0a4a2c; --edge: #020f08; --raised: #0f6239;
+  --ink: #f8efd8; --ink-soft: #bfe0c8; --accent: #ff7fb6; --accent-ink: #3a0a22;
+  --good: #a6f29b; --on-good: #020f08; --rose: #ff7a66; --sky: #8fdcf0; --scan: rgba(0, 10, 5, .12);
+}
 [data-theme="forest"] {
   --desk: #07170f; --base: #0f2a1c; --panel: #173b27; --raised: #225338; --edge: #06140d;
   --ink: #f7ecd0; --ink-soft: #b9d0b6; --accent: #ffc247; --accent-ink: #0f2a1c;
@@ -203,11 +209,11 @@ button, input { font: inherit; color: inherit; }
       <p>Design concept. Hover the cards, press things, then press Download. Nothing here downloads anything; the songs are made up.</p>
     </div>
     <div class="controls" id="controls">
-      <button class="key" data-theme-pick="redwood" aria-pressed="true"><i class="dot" style="background:#ff8552"></i>Redwood</button>
-      <button class="key" data-theme-pick="foxglove" aria-pressed="false"><i class="dot" style="background:#ff7fb6"></i>Foxglove</button>
+      <button class="key" data-theme-pick="foxglove" aria-pressed="true"><i class="dot" style="background:#ff8fc0"></i>Foxglove</button>
+      <button class="key" data-theme-pick="foxglove-before" aria-pressed="false"><i class="dot" style="background:#063420"></i>Green before</button>
+      <button class="key" data-theme-pick="redwood" aria-pressed="false"><i class="dot" style="background:#ff9a6b"></i>Redwood</button>
       <button class="key" data-theme-pick="sunbeam" aria-pressed="false"><i class="dot" style="background:#ffe6c4"></i>Sunbeam</button>
-      <button class="key" data-theme-pick="bark" aria-pressed="false"><i class="dot" style="background:#c07a4a"></i>Bark</button>
-      <button class="key" data-theme-pick="forest" aria-pressed="false"><i class="dot" style="background:#ffc247"></i>Forest before</button>
+      <button class="key" data-theme-pick="bark" aria-pressed="false"><i class="dot" style="background:#d08a58"></i>Bark</button>
       <button class="key" id="calm" aria-pressed="false">Reduce motion</button>
       <button class="key" id="replay">Start over</button>
     </div>
@@ -287,7 +293,7 @@ button, input { font: inherit; color: inherit; }
     <div>
       <h2>Yours to decide</h2>
       <ul>
-        <li><strong>Accent:</strong> Redwood, Foxglove, Sunbeam and Bark share one deeper green and differ in accent and in whether cards are green or brown. More than one can ship as themes.</li>
+        <li><strong>Accent:</strong> Foxglove is the pick for now, on a leaf green measured from a reference image. Redwood, Sunbeam and Bark sit on the same green, and Green before shows the darker green from the last round.</li>
         <li><strong>Your art:</strong> the wisp in the title bar is a placeholder. The mascot, the stamp and empty-screen pictures are natural spots for your own drawings.</li>
         <li><strong>Title bar:</strong> this drawn one, or the normal Windows one. The drawn one fits the look; the Windows one behaves exactly as you expect.</li>
         <li><strong>How loud:</strong> more tilt and bounce, or less.</li>

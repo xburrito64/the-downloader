@@ -205,7 +205,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 3 | Spotify provider | Done, Nov 16, 2026 |
 | 4 | Core queue | Done, Nov 16, 2026 |
 | 5 | API | Done, Nov 16, 2026 |
-| 6 | Design concept | Direction approved Nov 16, 2026. Accent colour for the forest green still open |
+| 6 | Design concept | Direction approved Nov 16, 2026. Accent: Foxglove for now. Green rebuilt from a reference image, waiting for a yes |
 | 7 | UI v1 in its window | Not started |
 | 8 | Polish | Not started |
 | 9 | Repo hygiene | Not started (optional) |
@@ -856,5 +856,62 @@ The four options:
 
 **Still open**
 
-- Which accent option, or a different direction.
+- Which accent option, or a different direction. (Answered in the next entry: Foxglove for now.)
 - Whether cards and keys should be green or brown.
+
+### Nov 16, 2026: Milestone 6, Foxglove chosen and the green taken from a reference image
+
+**Decisions by me**
+
+- **Accent: Foxglove (pink) for now.** With it come green cards and keys.
+- **The green was still not right.** I sent a small reference image of the green I mean, and want the app's green to go a lot more in that direction.
+
+**What the reference image showed**
+
+Claude Code measured the image instead of guessing by eye.
+
+| | Colour | Hue | Lightness |
+| --- | --- | --- | --- |
+| The reference image, main colour | `#18501c` | 124 (pure leaf green) | 20% |
+| The green from the round before | `#063420` | 154 (leaning towards teal) | 11% |
+
+So "more vibrant" meant two things: **less blue in the green, and nearly twice as light.** The earlier green was very saturated but so dark and so blue-leaning that it read as a dark teal. The image also has a pattern of slightly brighter dots (`#286030`), which may be worth using as a texture in milestone 8.
+
+**What was done**
+
+- The screen colour in `design/concept.html` is now exactly the reference green, and the other greens were rebuilt around it at the same hue. The page opens in Foxglove.
+- The other three accent options (Redwood, Sunbeam, Bark) were moved onto the same green. "Green before" shows Foxglove on the darker green from the last round, for comparison. "Forest before" was removed.
+
+| Role | Colour |
+| --- | --- |
+| Behind the window | `#0a260d` |
+| Screen | `#18501c` |
+| Panels | `#1f6424` |
+| Cards and keys | `#236d29` |
+| Hard shadows | `#071c09` |
+| Text | `#f8efd8` |
+| Quieter text | `#d9f0d6` |
+| Accent | `#ff8fc0` |
+| Done | `#b4f7a6` |
+| Problem | `#ffc2b8` |
+| Focus and links | `#a5e4f5` |
+
+- Because the green is lighter, the pink, the quieter text and the "done", "problem" and "focus" colours were all lightened a little so text stays readable.
+
+**What was checked**
+
+- Text contrast in Foxglove, by calculation: lowest pairing is 4.2 to 1 (the "problem" colour on a card); ordinary text is 5.3 to 1 or better everywhere, 8.3 on the screen.
+- The pink button against the screen is 4.5 to 1, against a card 3.0 to 1.
+
+**The cost of a lighter green**
+
+- Cards are now only 1.5 to 1 against the screen (they were 1.6 to 1.7). Making cards lighter would hurt the text on them, so the hard shadow under each card does more of the separating.
+- In Redwood and Sunbeam the brown cards are 1.2 to 1.3 against the new green, so they separate mostly by colour. Not a problem while Foxglove is the choice, but it would need work if brown cards come back.
+
+**Not checked**
+
+- Still calculation only; Claude Code has not seen the colours on screen.
+
+**Still open**
+
+- Whether this green is right now.
