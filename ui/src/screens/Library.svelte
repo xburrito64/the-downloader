@@ -42,7 +42,7 @@
   }
 </script>
 
-<div class="screen">
+<div class="screen" class:open={loaded && !entries.length}>
   <div class="head">
     <h1>Library</h1>
     <input class="well find" type="search" placeholder="Search title or artist" aria-label="Search the library" spellcheck="false" bind:value={search}>

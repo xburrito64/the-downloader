@@ -478,7 +478,8 @@ def create_app(state: AppState) -> Starlette:
             check_access(request)
         except ApiError as exc:
             return JSONResponse({"detail": exc.detail}, status_code=exc.status)
-        path = await run_in_threadpool(covers.thumbnail, request.query_params.get("u", ""), state.ffmpeg_path)
+        path = await run_in_threadpool(covers.thumbnail, request.query_params.get("u", ""), state.ffmpeg_path,
+                                         request.query_params.get("shape") == "wide")
         if path is None:
             return Response(status_code=404)
         # A cover never changes, so the window may keep it and never ask again.

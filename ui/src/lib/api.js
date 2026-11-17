@@ -49,8 +49,8 @@ export const api = {
 };
 
 /** Address of the small on-disk copy of a cover. The engine fetches and shrinks it once. */
-export function coverSrc(url) {
-  return url ? `/api/cover?u=${encodeURIComponent(url)}&token=${token}` : "";
+export function coverSrc(url, wide = false) {
+  return url ? `/api/cover?u=${encodeURIComponent(url)}${wide ? "&shape=wide" : ""}&token=${token}` : "";
 }
 
 /** Live updates from the engine. The browser reconnects by itself if the stream drops. */

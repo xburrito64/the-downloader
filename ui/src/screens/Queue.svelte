@@ -11,7 +11,7 @@
   const anyMoving = $derived(app.jobs.some((job) => job.status === "running" || job.status === "queued"));
 </script>
 
-<div class="screen">
+<div class="screen" class:open={!app.jobs.length}>
   <div class="head">
     <h1>Queue</h1>
     <span class="sub">{waiting ? `${plural(waiting, "download")} to go` : "Nothing waiting"}</span>

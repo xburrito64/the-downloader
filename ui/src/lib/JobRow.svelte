@@ -38,11 +38,11 @@
   }
 </script>
 
-<div class="row" class:failed={job.status === "failed"} class:done={job.status === "done"}>
-  <div class="art"><Cover url={job.cover_url} label={job.title} /></div>
+<div class="row" class:wide={job.provider === "youtube"} class:failed={job.status === "failed"} class:done={job.status === "done"}>
+  <div class="art"><Cover url={job.cover_url} label={job.title} wide={job.provider === "youtube"} /></div>
   <div class="text">
     <h4 title={job.title}>{job.title}</h4>
-    <p class="who">{[job.artist, job.group].filter(Boolean).join(" · ") || (job.provider === "youtube" ? "YouTube" : "Spotify")}</p>
+    <p class="who">{[job.artist, job.group].filter(Boolean).join(" Ãƒâ€šÃ‚Â· ") || (job.provider === "youtube" ? "YouTube" : "Spotify")}</p>
     <p class="state" title={job.status === "failed" ? line : null}>{line}</p>
     {#if job.status === "running" || job.status === "paused"}
       <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(fraction * 100)}>
@@ -74,6 +74,7 @@
     background: var(--raised); border-radius: var(--r-m); padding: 8px 14px 8px 8px; height: 100%;
     box-shadow: 0 4px 0 var(--edge);
   }
+  .row.wide { grid-template-columns: 114px minmax(0, 1fr) auto; }
   .text { min-width: 0; display: grid; gap: 1px; }
   h4 { margin: 0; font: 800 15px/1.25 var(--font-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   p { font-size: 13px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

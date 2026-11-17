@@ -21,6 +21,13 @@
   --sky: #8fdcf0;        /* focus ring and links */
   --scan: rgba(0, 10, 5, .12);
 
+  /* the forest behind the window */
+  --canopy: #052b1b;                    /* the picture's top colour, used above it on very tall windows */
+  --panel-glass: rgba(10, 74, 44, .9);  /* title bar, rail and status bar: the forest shows through faintly */
+  --veil: rgba(6, 52, 32, .8);          /* over the forest behind a screen, so text stays readable */
+  --veil-thin: rgba(6, 52, 32, .15);    /* the same on an empty screen, where the forest is the picture */
+  --wood: #5c3520; --wood-lit: #7d4a2a; --wood-dark: #27140c;  /* signs */
+
   --font-display: "Jersey 15", "Courier New", monospace;
   --font-body: "Nunito", "Segoe UI", system-ui, sans-serif;
 

@@ -1,4 +1,4 @@
-﻿# Spec: THE Downloader
+# Spec: THE Downloader
 
 A Spotify + YouTube downloader app. Version 2 of the spec, rewritten Nov 16, 2026 after a review of the first draft.
 
@@ -207,7 +207,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 5 | API | Done, Nov 16, 2026 |
 | 6 | Design concept | Direction approved Nov 16, 2026. Deep green `#063420` with the Foxglove pink accent |
 | 7 | UI v1 in its window | Done, Nov 17, 2026. Tried by hand by me |
-| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass waiting for my answers |
+| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 1 done (forest, signs, wide video cards). Waiting for my mascot choice |
 | 9 | Repo hygiene | Not started (optional) |
 
 ### Nov 16, 2026: Milestone 0, spec review and planning
@@ -1052,3 +1052,50 @@ So the window stays on its default options. 141 MB of its own is the cost of a w
 - Memory while downloading has not been measured with the window open.
 
 **Next: the design pass, together.** Open questions for me are in the chat: the forest background, the mascot, the finished-download moment, empty screens, and cover shape.
+
+### Nov 17, 2026: Milestone 8, design pass round 1: the forest
+
+My answers to the design questions:
+
+| Question | Answer |
+| --- | --- |
+| Where the forest shows | Behind the whole window |
+| What kind of forest | Not real mammoth trees. Tall pines, with the colours and mood of a cartoon mystery-town forest |
+| Who draws it | Claude |
+| Mascot | Claude proposes a few |
+| Finished-download moment | Decide later, once the forest look is settled |
+| Empty screens | Pictures are fine, as long as it looks nice |
+| YouTube covers | Wide cards |
+
+**The forest background**
+
+- The picture is drawn by a script, `design/make_forest.py`, and saved to `ui/src/art/forest.png`. It is original pixel art: three rows of pines from pale and far to dark and near, three big red-brown trunks in front, a ground with a dirt path, pink foxgloves, mushrooms and a few pale sparks. Changing the forest means changing numbers in the script and running it again.
+- Why a script and not a painted file: every tree can be moved, recoloured or redrawn later without an art program, and the result is always the same.
+- The picture is 640 by 400 pixels, 28 colours, 21 kB. It is shown at 3 screen pixels per art pixel, pinned to the bottom, and repeats seamlessly sideways, so it fits any window size without stretching. Above it, a tall window shows the picture's top colour.
+- Cost: under 1 MB of memory, no animation, no processor use.
+- The title bar, side rail and status bar are now slightly see-through (90% solid), so the forest runs faintly behind them.
+- Behind a screen with content lies a green veil (80% solid) so text stays readable. On an empty screen the veil thins out toward the bottom, and the forest itself is the picture.
+- Empty-screen messages now sit on a wooden sign with two posts. This brings brown into the interface.
+- New theme values in `theme.css`: `--canopy`, `--panel-glass`, `--veil`, `--veil-thin`, `--wood`, `--wood-lit`, `--wood-dark`.
+
+**Wide cards for videos**
+
+- YouTube items are shown with a 16:9 picture: on Home (cards 216 wide instead of 140), and in the Queue and Library rows. Spotify items stay square.
+- The engine makes a second small copy in that shape (384 by 216) when asked with `shape=wide`. Cutting to 16:9 also removes the black bars YouTube adds to its older 4:3 pictures.
+
+**Mascot proposals**
+
+- `design/mascots.png`, drawn by `design/make_mascots.py`: wisp (the current placeholder, enlarged), squirrel with an acorn, fox, mushroom, owl. Each is 16 by 16 pixels, shown large and at title-bar size. Nothing is chosen yet; the title bar still shows the small wisp.
+
+**What was tested**
+
+- Looked at in the window at 1120 by 760: Home empty, Home with a 182-video playlist (wide cards), Queue empty, Library empty, Settings. Text is readable everywhere.
+- Wide covers on disk are 384 by 216, about 11 kB each.
+- The 35 queue checks, 43 API checks and 16 milestone 8 checks all pass.
+
+**Not done**
+
+- Not looked at in the real app window yet, only in the browser view of the same page.
+- The finished-download moment (waiting on purpose).
+- The mascot (waiting for my choice).
+- Still open from part 1: choosing a different match for a Spotify song, and memory while downloading.

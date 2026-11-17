@@ -17,7 +17,8 @@ from urllib.parse import urlsplit
 
 from . import paths
 
-SIZE = 256  # pixels, square. Cards are 140 wide; this stays sharp on a high-DPI screen.
+SIZE = 256        # pixels, square. Cards are 140 wide; this stays sharp on a high-DPI screen.
+WIDE = (384, 216)  # the 16:9 shape used for videos
 _ALLOWED_DOMAINS = ("scdn.co", "spotifycdn.com", "ytimg.com", "ggpht.com", "googleusercontent.com")
 _MAX_DOWNLOAD_BYTES = 5_000_000
 _MAX_FILES = 4000
@@ -75,11 +76,17 @@ def _fetch(url: str) -> bytes | None:
     return data if 0 < len(data) <= _MAX_DOWNLOAD_BYTES else None
 
 
-def thumbnail(url: str, ffmpeg_path: str | None) -> Path | None:
-    """The small copy of a cover, made on first use. None when it cannot be made."""
+def thumbnail(url: str, ffmpeg_path: str | None, wide: bool = False) -> Path | None:
+    """The small copy of a cover, made on first use. None when it cannot be made.
+
+    Square by default (album covers). wide gives the 16:9 shape of a video picture; cutting
+    to that shape also removes the black bars YouTube adds to its 4:3 pictures.
+    """
     if not allowed(url):
         return None
-    target = folder() / (hashlib.sha256(url.encode()).hexdigest()[:32] + ".jpg")
+    width, height = WIDE if wide else (SIZE, SIZE)
+    name = hashlib.sha256(url.encode()).hexdigest()[:32] + ("-wide" if wide else "")
+    target = folder() / (name + ".jpg")
     if target.is_file():
         return target
     if not ffmpeg_path:
@@ -93,7 +100,7 @@ def thumbnail(url: str, ffmpeg_path: str | None) -> Path | None:
             return None
         target.parent.mkdir(parents=True, exist_ok=True)
         temporary = target.with_name(f"{target.stem}.{threading.get_ident()}.tmp")
-        crop = f"scale={SIZE}:{SIZE}:force_original_aspect_ratio=increase,crop={SIZE}:{SIZE}"
+        crop = f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}"
         try:
             result = subprocess.run(
                 [ffmpeg_path, "-v", "error", "-nostdin", "-y", "-f", kind, "-i", "pipe:0",

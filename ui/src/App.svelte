@@ -54,6 +54,7 @@
 </script>
 
 <div class="window">
+  <div class="forest" aria-hidden="true"></div>
   <header class="titlebar pywebview-drag-region" ondblclick={inWindow ? toggleMaximize : null} role="presentation">
     <!-- placeholder mascot: a small original pixel wisp. This spot is for the owner's own art (milestone 8). -->
     <svg class="wisp" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">
@@ -118,12 +119,18 @@
 </div>
 
 <style>
-  .window { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--base); position: relative; }
+  .window { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--canopy); position: relative; isolation: isolate; }
+  /* The forest: one small picture, shown at 3 screen pixels per art pixel, pinned to the bottom and repeated sideways.
+     It has its own layer so that "pixelated" applies to it alone and not to cover pictures. */
+  .forest {
+    position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: url("./art/forest.png") repeat-x center bottom / 1920px 1200px; image-rendering: pixelated;
+  }
   .window::after { /* still scanlines: an overlay, never an animation */
     content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 5;
     background: repeating-linear-gradient(to bottom, var(--scan) 0 1px, transparent 1px 4px);
   }
-  .titlebar { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; background: var(--panel); }
+  .titlebar { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; background: var(--panel-glass); }
   .titlebar h2 { font: 400 26px/1 var(--font-display); letter-spacing: .5px; flex: 1; pointer-events: none; }
   .wisp { width: 22px; height: 22px; flex: none; pointer-events: none; }
   .winkeys { display: flex; gap: 8px; }
@@ -136,7 +143,7 @@
   .winkeys .close { background: var(--rose); color: var(--edge); }
 
   .body { display: grid; grid-template-columns: 96px minmax(0, 1fr); min-height: 0; }
-  .rail { background: var(--panel); padding: 12px 10px; display: flex; flex-direction: column; gap: 8px; }
+  .rail { background: var(--panel-glass); padding: 12px 10px; display: flex; flex-direction: column; gap: 8px; }
   .tab {
     border: 0; background: none; cursor: pointer; border-radius: var(--r-m); padding: 10px 4px 6px; display: grid; justify-items: center; gap: 3px;
     color: var(--ink-soft); font-size: 13px; font-weight: 700; transition: transform var(--quick);
@@ -147,7 +154,7 @@
   .count { font: 400 18px/1 var(--font-display); color: var(--accent); min-height: 18px; }
   main { min-width: 0; min-height: 0; }
 
-  .statusbar { display: flex; justify-content: space-between; gap: 16px; padding: 7px 26px 7px 18px; background: var(--panel); color: var(--ink-soft); font-size: 14px; font-weight: 600; }
+  .statusbar { display: flex; justify-content: space-between; gap: 16px; padding: 7px 26px 7px 18px; background: var(--panel-glass); color: var(--ink-soft); font-size: 14px; font-weight: 600; }
   .msg { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .statusbar b { font-weight: 800; color: var(--ink); }
   .statusbar b.good { color: var(--good); }

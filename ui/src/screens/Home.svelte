@@ -109,7 +109,7 @@
   }
 </script>
 
-<div class="screen">
+<div class="screen" class:open={!found}>
   <div class="slot" class:gulp>
     <input class="well" aria-label="Link" placeholder="Paste a Spotify or YouTube link" spellcheck="false" autocomplete="off"
       bind:value={link} onpaste={pasted} onkeydown={(event) => event.key === "Enter" && read()}>
@@ -132,14 +132,14 @@
     </div>
 
     <div class="hand" class:dealt class:dealing>
-      <VirtualGrid items={found.items} itemWidth={140} itemHeight={218} gap={16} keyOf={(item) => item.index}>
+      <VirtualGrid items={found.items} itemWidth={canVideo ? 216 : 140} itemHeight={canVideo ? 206 : 218} gap={16} keyOf={(item) => item.index}>
         {#snippet cell(item)}
-          <button class="card" class:off={!picked[item.index]} aria-pressed={Boolean(picked[item.index])}
+          <button class="card" class:wide={canVideo} class:off={!picked[item.index]} aria-pressed={Boolean(picked[item.index])}
             style:--delay="{Math.min(item.index, 12) * 35}ms"
             onclick={() => (picked[item.index] = !picked[item.index])} onpointermove={tilt} onpointerleave={settle}>
-            <Cover url={item.cover_url} label={item.title} />
+            <Cover url={item.cover_url} label={item.title} wide={canVideo} />
             <h4 title={item.title}>{item.title}</h4>
-            <p>{item.artist || " "}</p>
+            <p>{item.artist || "ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â "}</p>
             <span class="foot">
               <span>{item.already === "downloaded" ? "Have it" : item.already === "in queue" ? "In queue" : duration(item.duration_seconds)}</span>
               <i class="tick"></i>
@@ -196,6 +196,7 @@
     box-shadow: 0 6px 0 var(--edge); cursor: pointer; position: relative;
     opacity: 0; transform: translateY(40px) rotate(7deg) scale(.88);
   }
+  .card.wide { width: 216px; height: 206px; }   /* videos: a 16:9 picture */
   .dealt .card {
     opacity: 1; transform: translateY(var(--lift)) rotateX(var(--rx)) rotateY(var(--ry));
     transition: transform var(--settle) var(--spring), opacity 200ms;
