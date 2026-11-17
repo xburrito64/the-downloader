@@ -1295,3 +1295,28 @@ My go-ahead (the owner): "Yes, make it public."
 - Checked on GitHub afterwards: the page shows "Public", the README renders with both screenshots, and GitHub recognises the MIT licence.
 
 All nine milestones are done.
+
+### Nov 17, 2026: An app with its own icon
+
+I (the owner) asked for an actual app I can open, with a fitting icon.
+
+**The icon.** The mushroom mascot, with a dark outline so it stays readable on a light taskbar as well as a dark one. `design/make_icon.py` draws it at 16, 24, 32, 48, 64, 128 and 256 pixels, always as whole-number enlargements of the 16-pixel drawing, so it stays crisp. Result: `src/thedownloader/assets/icon.ico` (3 kB), with a preview in `design/icon-preview.png`.
+
+**The window** now carries the icon, and tells Windows its app ID (`xburrito64.THEDownloader`). Windows uses that ID to put the open window and a pinned shortcut on one taskbar button.
+
+**Shortcuts.** New command `uv run thedownloader shortcuts` puts "THE Downloader" into the Start menu and on the desktop (`--remove` takes them away). Each shortcut:
+
+- starts the window without a terminal, through the project's own windowless Python (`pythonw -m thedownloader.window`);
+- shows the mushroom icon;
+- carries the same app ID as the window, so pinning it to the taskbar works as expected.
+
+Why `pythonw` and not the `thedownloader-app.exe` that uv makes: uv replaces that file on every update and cannot while the app is open. During this step an update ran while the app was open, and that file was removed. `pythonw.exe` is never touched by an update, so the shortcut keeps working. (`thedownloader-app.exe` comes back at the next `uv sync` with the app closed.)
+
+Writing a shortcut with an app ID needs a Windows interface that Python cannot reach on its own, so `shortcuts.py` hands a short piece of C# to PowerShell, which is built into Windows. All values are passed as environment variables, never pasted into the script.
+
+**What was tested**
+
+- Both shortcuts were created and read back: right target, right icon, right folder, and the app ID is set.
+- Opening the Start menu shortcut started the app in 3.3 seconds, with no terminal. The window has its icon, and the taskbar button shows the mushroom.
+- The window closed normally when asked to.
+- The icon is included when the project is packaged.

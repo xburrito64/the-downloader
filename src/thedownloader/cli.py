@@ -2,6 +2,7 @@
 
 import argparse
 import re
+import subprocess
 import sys
 
 from . import APP_NAME, config, paths, startup
@@ -213,6 +214,21 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_shortcuts(args: argparse.Namespace) -> int:
+    from . import shortcuts
+
+    try:
+        lines = shortcuts.remove() if args.remove else shortcuts.install()
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        print(f"[ERROR] {_clean(exc)}")
+        return 1
+    for line in lines:
+        print(line)
+    if not args.remove:
+        print("Open THE Downloader from the Start menu or the desktop. Right-click it there to pin it to the taskbar.")
+    return 0
+
+
 def cmd_app(args: argparse.Namespace) -> int:
     from . import window
 
@@ -366,6 +382,10 @@ def main() -> None:
     app = sub.add_parser("app", help="open the app window")
     app.add_argument("--debug", action="store_true", help="open the window with developer tools")
     app.set_defaults(func=cmd_app)
+
+    links = sub.add_parser("shortcuts", help="add THE Downloader to the Start menu and the desktop")
+    links.add_argument("--remove", action="store_true", help="remove the shortcuts again")
+    links.set_defaults(func=cmd_shortcuts)
 
     sub.add_parser("resume", help="continue paused or interrupted downloads").set_defaults(func=cmd_resume)
     sub.add_parser("queue", help="list downloads that are waiting, running or paused").set_defaults(func=cmd_queue)

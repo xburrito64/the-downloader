@@ -5,8 +5,15 @@ so nothing the size of a whole browser is bundled with the app.
 """
 
 import threading
+from pathlib import Path
 
 from . import APP_NAME, config, server
+
+ICON = Path(__file__).resolve().parent / "assets" / "icon.ico"   # drawn by design/make_icon.py
+# Tells Windows which taskbar button and pinned shortcut this window belongs to.
+# The Start menu and desktop shortcuts carry the same ID (see shortcuts.py), so the
+# running window and a pinned shortcut share one taskbar button with the mushroom icon.
+APP_ID = "xburrito64.THEDownloader"
 
 _WIDTH, _HEIGHT = 1120, 760
 _MIN_WIDTH, _MIN_HEIGHT = 900, 620
@@ -110,7 +117,13 @@ def run(debug: bool = False) -> None:
         frameless=True, easy_drag=False, background_color=_BACKGROUND, text_select=False,
     )
     try:
-        webview.start(debug=debug)  # returns when the window is closed
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_ID)
+    except (AttributeError, OSError):
+        pass  # only the taskbar grouping is lost; the app works the same
+    try:
+        webview.start(debug=debug, icon=str(ICON) if ICON.is_file() else None)  # returns when the window is closed
     finally:
         server.stop(api_server, state)
         thread.join(8)
@@ -126,3 +139,7 @@ def main() -> None:
 
         ctypes.windll.user32.MessageBoxW(None, str(exc), APP_NAME, 0x10)
         raise SystemExit(1) from exc
+
+
+if __name__ == "__main__":  # what the Start menu and desktop shortcuts run: pythonw -m thedownloader.window
+    main()

@@ -47,13 +47,15 @@ This is a personal project, shared as it is.
    cd ..
    ```
 
-3. Start it:
+3. Add it to the Start menu and the desktop:
 
    ```
-   uv run thedownloader app
+   uv run thedownloader shortcuts
    ```
 
-   For a desktop shortcut, point it at `.venv\Scripts\thedownloader-app.exe` inside the project folder.
+   From then on, open **THE Downloader** like any other app, with its mushroom icon. To keep it on the taskbar, right-click it in the Start menu and pick "Pin to taskbar". `uv run thedownloader shortcuts --remove` takes the shortcuts away again.
+
+   Without shortcuts, `uv run thedownloader app` opens it from a terminal.
 
 If something is missing, the app says so in **Settings**, under "What the app needs".
 
