@@ -48,8 +48,9 @@ class Candidate:
     artist: str
     album: str
     duration_seconds: int
-    kind: str  # "song" (official audio) or "video"
+    kind: str  # "song" (official audio), "video", or "soundcloud" (a pasted SoundCloud link)
     score: float  # 0.0 to 1.0
+    cover_url: str = ""  # only for SoundCloud; YouTube pictures are found from the video ID
 
 
 def _normalise(text: str) -> str:

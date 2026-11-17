@@ -214,6 +214,9 @@ class YouTubeProvider:
 
         if options.mode == "audio":
             ydl_options["format"] = "bestaudio/best"
+            if "soundcloud.com/" in item.url:
+                # A SoundCloud match picked by hand. Never its 30-second preview stream.
+                ydl_options["format"] = "bestaudio[format_id!*=preview]/best[format_id!*=preview]"
             if options.audio_format == "mp3":
                 codec = {"preferredcodec": "mp3", "preferredquality": "192"}
             else:
@@ -293,7 +296,8 @@ class YouTubeProvider:
                 # Without a login first: most videos need none, and it keeps the account out of it.
                 # Only a video that YouTube gives to signed-in accounts alone is tried again with the login.
                 raw = logger.last_error or str(exc)
-                login = self.login_options()
+                # The login is for YouTube only; it is never sent to SoundCloud.
+                login = self.login_options() if "soundcloud.com/" not in item.url else {}
                 if not (login and _NEEDS_LOGIN.search(raw)):
                     raise
                 logger.last_error = ""

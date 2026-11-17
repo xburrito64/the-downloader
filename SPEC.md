@@ -1507,3 +1507,23 @@ My wish (the owner): the middle window button should look different when the win
 - When the window fills the screen, the middle button now shows two overlapping squares and is named "Restore"; otherwise one square, "Maximise". Hovering shows the name. The app already knew which state it was in; only the picture never changed.
 - **Tested** in the browser view with a stand-in for the window: the button switches to the two squares and back. Drawn at 5 times the size to check that the shape reads well.
 - The version is now 1.1.2 (`pyproject.toml`, `ui/package.json` and both lock files), tagged `v1.1.2`, and published on GitHub as "THE Downloader 1.1.2": the careful matching, searching or pasting a link in Other match, and this button.
+
+### Nov 17, 2026: A SoundCloud link as the match
+
+My wish (the owner): a song is on Spotify but nowhere on YouTube. It is on SoundCloud. What can we do?
+
+**Decision:** Other match also takes a SoundCloud link. The app never searches SoundCloud by itself: SoundCloud is full of re-uploads, sped-up copies and remixes under the same name, and a sure wrong pick is worse than waiting for a hand pick.
+
+- Paste a track link (`soundcloud.com/<artist>/<track>`, a private `.../s-...` link, or a short `on.soundcloud.com/...` link from the SoundCloud app) into the search box of Other match. The track appears with its picture, length, a "SoundCloud" label and a fit against the Spotify song, like any other match. Listen opens it on soundcloud.com; Use this downloads it.
+- The audio is downloaded with yt-dlp like a YouTube recording and tagged from Spotify (title, artist, album, number, year, cover). Often 160 kbps AAC, sometimes 128 kbps MP3; "original" keeps it as it is, "mp3" converts as usual.
+- Some tracks only play a 30-second preview to people without SoundCloud Go+. The app refuses those right away ("SoundCloud only plays a 30-second preview of this track ...") and never downloads a preview stream.
+- Album pages, sets, likes and artist pages are not a single track and are not accepted. The YouTube login is never sent to SoundCloud.
+- A picked SoundCloud track is kept as its clean address (`https://soundcloud.com/<artist>/<track>`). The engine checks that exact shape wherever such a match arrives, so nothing else can be opened or downloaded through it. SoundCloud pictures (`sndcdn.com`) were added to the cover list.
+- New file `providers/soundcloud.py`.
+
+**Tested:**
+- Link reading: normal, mobile, with tracking parts, private and short links are read; sets, likes, artist pages, other websites and plain words are not.
+- A real track (Forss, "Flickermood") against a matching Spotify song: 100% fit. Against another song: 20%. A dead link gives a clear message.
+- Downloaded and tagged for real in both formats: "original" gave a 160 kbps .m4a, "mp3" a 192 kbps .mp3, both 3:34 with all tags.
+- In the window with a separate test engine: pasting the link shows "Reading the SoundCloud link", then the track with its picture and the SoundCloud label. The earlier matching checks still pass.
+- Not tried: a preview-only track and a real short link (none at hand). The preview check uses the marks yt-dlp itself puts on preview streams.

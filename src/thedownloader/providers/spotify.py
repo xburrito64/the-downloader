@@ -12,6 +12,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from .. import spotify_auth, tagging
+from . import soundcloud
 from ..errors import VIDEO_BLOCKED
 from ..matching import MIN_SCORE, Candidate, Matcher
 from .base import DownloadOptions, Item, Progress, ProviderError, Resolved, Stopped
@@ -206,7 +207,10 @@ class SpotifyProvider:
             raise ProviderError(f"Searching YouTube Music failed: {exc}") from exc
 
     def search_matches(self, item: Item, query: str) -> list[Candidate]:
-        """Recordings for a search typed by hand, or the one video of a pasted link."""
+        """Recordings for a search typed by hand, or the one recording of a pasted link."""
+        link = soundcloud.link_in(query)
+        if link:
+            return [soundcloud.candidate(item, link)]
         try:
             return self._matcher.search(item, query)
         except Exception as exc:
@@ -233,12 +237,9 @@ class SpotifyProvider:
         for number, video_id in enumerate(choices):
             if should_stop():
                 raise Stopped()
-            source = Item(
-                provider="youtube",
-                source_id=video_id,
-                url=f"https://music.youtube.com/watch?v={video_id}",
-                title=item.title,
-            )
+            # A pasted SoundCloud track is kept as its address; everything else is a YouTube video ID.
+            url = video_id if soundcloud.is_track(video_id) else f"https://music.youtube.com/watch?v={video_id}"
+            source = Item(provider="youtube", source_id=video_id, url=url, title=item.title)
             try:
                 # Spotify downloads are always audio.
                 path = self._youtube.download(source, replace(options, mode="audio"), on_progress, should_stop)

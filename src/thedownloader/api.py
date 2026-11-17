@@ -29,6 +29,7 @@ from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
 from . import APP_NAME, config, covers, spotify_auth, startup, updater
+from .providers import soundcloud
 from .providers.base import ProviderError, Resolved
 from .providers.youtube import LOGIN_SOURCES, test_login
 from .queue import DownloadQueue
@@ -165,6 +166,11 @@ class AppState:
 
 
 # ---- reading values out of a request --------------------------------------
+
+def _is_match(value) -> bool:
+    """A YouTube video ID, or a SoundCloud track address as the app stores it."""
+    return isinstance(value, str) and (bool(_VIDEO_ID.match(value)) or soundcloud.is_track(value))
+
 
 def _is_int(value) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
@@ -395,7 +401,7 @@ def create_app(state: AppState) -> Starlette:
             raise ApiError(422, "A chosen match is not valid.")
         matches: dict[int, str] = {}
         for key, video_id in raw_matches.items():
-            if not str(key).isdigit() or not 0 <= int(key) < total or not isinstance(video_id, str) or not _VIDEO_ID.match(video_id):
+            if not str(key).isdigit() or not 0 <= int(key) < total or not _is_match(video_id):
                 raise ApiError(422, "A chosen match is not valid.")
             matches[int(key)] = video_id
 
@@ -460,19 +466,20 @@ def create_app(state: AppState) -> Starlette:
 
     def job_rematch(request: Request, body: dict):
         video_id = body.get("video_id")
-        if not isinstance(video_id, str) or not _VIDEO_ID.match(video_id):
+        if not _is_match(video_id):
             raise ApiError(422, "A chosen match is not valid.")
         if not state.queue.rematch(request.path_params["job_id"], video_id):
             raise ApiError(422, "Only a finished or failed Spotify song can get another match.")
         return state.store.get(request.path_params["job_id"]).summary()
 
     def listen(_request: Request, body: dict):
-        """Open a YouTube Music recording in the browser, to hear it before picking it."""
+        """Open a YouTube Music recording or a SoundCloud track in the browser, to hear it before picking it."""
         video_id = body.get("video_id")
-        if not isinstance(video_id, str) or not _VIDEO_ID.match(video_id):
+        if not _is_match(video_id):
             raise ApiError(422, "Not a valid video.")
-        # The address is built here from a checked ID, never taken from the request.
-        webbrowser.open(f"https://music.youtube.com/watch?v={video_id}")
+        # A YouTube address is built here from a checked ID. A SoundCloud address passed the strict
+        # soundcloud.com/<artist>/<track> check, so it cannot lead anywhere else.
+        webbrowser.open(video_id if soundcloud.is_track(video_id) else f"https://music.youtube.com/watch?v={video_id}")
         return {"ok": True}
 
     def update_check(_request: Request, _body: dict):

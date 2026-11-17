@@ -19,7 +19,7 @@ from . import paths
 
 SIZE = 256        # pixels, square. Cards are 140 wide; this stays sharp on a high-DPI screen.
 WIDE = (384, 216)  # the 16:9 shape used for videos
-_ALLOWED_DOMAINS = ("scdn.co", "spotifycdn.com", "ytimg.com", "ggpht.com", "googleusercontent.com")
+_ALLOWED_DOMAINS = ("scdn.co", "spotifycdn.com", "ytimg.com", "ggpht.com", "googleusercontent.com", "sndcdn.com")
 _MAX_DOWNLOAD_BYTES = 5_000_000
 _MAX_FILES = 4000
 _slots = threading.Semaphore(2)  # at most two covers are fetched and shrunk at a time

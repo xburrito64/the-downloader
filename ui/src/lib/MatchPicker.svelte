@@ -35,6 +35,8 @@
   }
 
   const isLink = (text) => /youtu/i.test(text);
+  const isSoundCloud = (text) => /soundcloud\.com\//i.test(text);
+  const kinds = { song: "Song", video: "Video", soundcloud: "SoundCloud" };
 
   function close() {
     app.matchFor = null;
@@ -68,7 +70,7 @@
 
     <form class="search" onsubmit={submit}>
       <input class="well" type="search" bind:value={query} spellcheck="false" autocomplete="off"
-        placeholder="Search YouTube Music, or paste a YouTube link" aria-label="Search YouTube Music or paste a link">
+        placeholder="Search YouTube Music, or paste a YouTube or SoundCloud link" aria-label="Search YouTube Music or paste a link">
       <button class="key" type="submit">Search</button>
       {#if searched}<button class="key" type="button" onclick={() => { query = ""; look(""); }}>Suggestions</button>{/if}
     </form>
@@ -76,7 +78,7 @@
     {#if problem}
       <p class="problem">{problem}</p>
     {:else if !found}
-      <p class="note">Searching YouTube Music</p>
+      <p class="note">{isSoundCloud(searched) ? "Reading the SoundCloud link" : "Searching YouTube Music"}</p>
     {:else if !found.length}
       <p class="note">{searched ? (isLink(searched) ? "That link is not a video YouTube Music can play." : "Nothing found for this search. Try other words, or paste a link from YouTube Music.")
         : "YouTube Music has nothing under this title and artist. Search above with other words, or paste a link."}</p>
@@ -84,10 +86,10 @@
       <ul>
         {#each found as candidate (candidate.video_id)}
           <li>
-            <div class="art"><Cover url={`https://i.ytimg.com/vi/${candidate.video_id}/mqdefault.jpg`} label={candidate.title} wide /></div>
+            <div class="art"><Cover url={candidate.cover_url || `https://i.ytimg.com/vi/${candidate.video_id}/mqdefault.jpg`} label={candidate.title} wide /></div>
             <div class="text">
               <h4 title={candidate.title}>{candidate.title}</h4>
-              <p>{candidate.artist || "Unknown artist"} · {duration(candidate.duration_seconds)} · {candidate.kind === "song" ? "Song" : "Video"}</p>
+              <p>{candidate.artist || "Unknown artist"} · {duration(candidate.duration_seconds)} · {kinds[candidate.kind] || "Video"}</p>
               <p class="fit" class:low={candidate.score < 0.6}>{Math.round(candidate.score * 100)}% fit{candidate.chosen ? " · picked before" : ""}</p>
             </div>
             <button class="key" onclick={() => api.listen(candidate.video_id).catch((error) => notify(error.message, "problem"))}>Listen</button>
@@ -95,7 +97,7 @@
           </li>
         {/each}
       </ul>
-      <p class="note small">Fit is how well the title, artist and length agree with Spotify. Listen opens it in your browser. Not here? Search above, or find it on music.youtube.com and paste its link.</p>
+      <p class="note small">Fit is how well the title, artist and length agree with Spotify. Listen opens it in your browser. Not here? Search above, or paste a link from music.youtube.com or soundcloud.com.</p>
     {/if}
   </div>
 </div>
