@@ -1536,3 +1536,9 @@ My wish (the owner): after restarting the app, the songs that still need a match
 - The "All / Didn't download" switch at the top of the Library moved into this notice, so there is one switch instead of two. A search still works inside "Only these".
 - The engine has a small new address for the count: `GET /api/history/failed`.
 - **Tested** in the window with a separate test engine: the notice reads "1 didn't download" over the 無職転生 test row, and Only these shows just that row.
+
+### Nov 17, 2026: Release 1.1.3
+
+My wish (the owner): release it.
+
+- The version is now 1.1.3 (`pyproject.toml`, `ui/package.json` and both lock files), tagged `v1.1.3`, and published on GitHub as "THE Downloader 1.1.3": a SoundCloud link as the match in Other match, and the "didn't download" notice in the Library.
