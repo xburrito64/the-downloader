@@ -21,6 +21,25 @@
   const missing = $derived((app.status?.checks ?? []).filter((check) => !check.ok && check.required));
   const ytdlp = $derived((app.status?.checks ?? []).find((check) => check.name === "yt-dlp")?.detail.split("  ")[0] ?? "");
 
+  // The finish moment, part 1: the mascot hops and puffs out spores. Part 2 is the mushrooms below, part 3 the stamp on the row.
+  let mascotEl = $state();
+  let spores = $state([]);
+  let sporeBatch = 0;
+  let footHeight = $state(36);
+  $effect(() => {
+    if (!app.finished) return;
+    mascotEl?.classList.remove("hop");
+    void mascotEl?.offsetWidth;            // restart the hop if one is already playing
+    mascotEl?.classList.add("hop");
+    const batch = ++sporeBatch;
+    spores = Array.from({ length: 9 }, (_, i) => {
+      const angle = Math.PI * (0.1 + 0.8 * i / 8) + (Math.random() - 0.5) * 0.3;   // out to the sides and down
+      const reach = 18 + Math.random() * 18;
+      return { key: `-${i}`, pale: i % 3 === 0, dx: Math.round(-Math.cos(angle) * reach / 3) * 3, dy: Math.round(Math.sin(angle) * reach * 0.7 / 3) * 3 };
+    });
+    setTimeout(() => batch === sporeBatch && (spores = []), 1000);
+  });
+
   onMount(() => {
     start();
     const ready = () => (inWindow = Boolean(windowApi()));
@@ -58,7 +77,10 @@
   <div class="forest" aria-hidden="true"></div>
   <header class="titlebar pywebview-drag-region" ondblclick={inWindow ? toggleMaximize : null} role="presentation">
     <!-- the mascot: a 16 by 16 pixel mushroom, drawn by design/make_mascots.py -->
-    <img class="mascot" src={mascot} alt="" draggable="false">
+    <span class="puff">
+      <img class="mascot" src={mascot} alt="" draggable="false" bind:this={mascotEl} onanimationend={() => mascotEl.classList.remove("hop")}>
+      {#each spores as spore (spore.key)}<i class:pale={spore.pale} style:--dx="{spore.dx}px" style:--dy="{spore.dy}px"></i>{/each}
+    </span>
     <h2>THE Downloader</h2>
     {#if inWindow}
       <div class="winkeys">
@@ -81,6 +103,14 @@
     </nav>
 
     <main>
+      <div class="veil" aria-hidden="true"></div>
+      <!-- The finish moment, part 2: a mushroom grows on the forest floor for each finished download.
+           It stands on the picture's grass, 72 to 90 screen pixels above the window's bottom edge. -->
+      <div class="floor" aria-hidden="true">
+        {#each app.sprouts as sprout (sprout.id)}
+          <img class="sprout" src={mascot} alt="" draggable="false" style:left="{sprout.left}%" style:bottom="{72 + sprout.lift - footHeight}px">
+        {/each}
+      </div>
       {#if app.loadError}
         <div class="screen"><p class="empty"><strong>The app could not start.</strong>{app.loadError}</p></div>
       {:else if !app.settings}
@@ -97,7 +127,7 @@
     </main>
   </div>
 
-  <footer class="statusbar">
+  <footer class="statusbar" bind:offsetHeight={footHeight}>
     <span class="msg" aria-live="polite">
       {#if app.notice}
         <b class={app.notice.kind}>{app.notice.text}</b>
@@ -129,7 +159,21 @@
   }
   .titlebar { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; background: var(--panel-glass); }
   .titlebar h2 { font: 400 26px/1 var(--font-display); letter-spacing: .5px; flex: 1; pointer-events: none; }
-  .mascot { width: 32px; height: 32px; margin: -4px 0 -2px; flex: none; pointer-events: none; image-rendering: pixelated; }
+  .puff { position: relative; flex: none; width: 32px; height: 26px; pointer-events: none; }
+  .mascot { position: absolute; left: 0; bottom: -2px; width: 32px; height: 32px; image-rendering: pixelated; transform-origin: bottom; }
+  .mascot:global(.hop) { animation: hop 520ms steps(6); }
+  @keyframes hop { 30% { transform: translateY(-8px) scaleY(1.08); } 60% { transform: scaleY(.88); } 78% { transform: translateY(-3px); } }
+  .puff i { position: absolute; left: 14px; top: 8px; width: 4px; height: 4px; background: var(--accent); z-index: 7; animation: spore 760ms steps(8) 120ms both; }
+  .puff i.pale { background: var(--ink); }
+  @keyframes spore { from { transform: none; opacity: 1; } to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+
+  /* behind a screen: the veil that keeps text readable, then the floor where mushrooms grow, then the screen itself */
+  main { position: relative; }
+  .veil { position: absolute; inset: 0; background: var(--veil); transition: background-color var(--settle); }
+  main:has(> :global(.screen.open)) .veil { background: linear-gradient(to bottom, var(--veil), var(--veil-thin) 70%); }
+  .floor { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .sprout { position: absolute; width: 32px; height: 32px; margin-left: -16px; image-rendering: pixelated; transform-origin: bottom; animation: sprout 640ms steps(1) both; }
+  @keyframes sprout { 0% { transform: scaleY(0); } 20% { transform: scaleY(.25); } 40% { transform: scaleY(.6); } 60% { transform: scaleY(1.15) scaleX(.9); } 80% { transform: scaleY(.92) scaleX(1.06); } 100% { transform: none; } }
   .winkeys { display: flex; gap: 8px; }
   .winkeys button {
     width: 34px; height: 24px; border: 0; border-radius: 6px; background: var(--raised); color: var(--ink); cursor: pointer;
@@ -150,6 +194,7 @@
   .tab[aria-current="page"] { background: var(--raised); color: var(--ink); box-shadow: 0 4px 0 var(--edge); }
   .count { font: 400 18px/1 var(--font-display); color: var(--accent); min-height: 18px; }
   main { min-width: 0; min-height: 0; }
+  main > :global(.screen) { position: relative; }
 
   .statusbar { display: flex; justify-content: space-between; gap: 16px; padding: 7px 26px 7px 18px; background: var(--panel-glass); color: var(--ink-soft); font-size: 14px; font-weight: 600; }
   .msg { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

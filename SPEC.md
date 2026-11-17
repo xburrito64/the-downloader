@@ -4,7 +4,7 @@ A Spotify + YouTube downloader app. Version 2 of the spec, rewritten Nov 16, 202
 
 This file is the single source of truth for the project. It has two parts:
 
-- **Sections 1ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“11** describe what is being built and why.
+- **Sections 1ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ11** describe what is being built and why.
 - **Section 12 (Development log)** records every step of development as it happens. It is updated at the end of each milestone, and whenever a decision changes.
 
 ## 1. Goal
@@ -56,7 +56,7 @@ The provider interface is the important part. Adding a third source later (for e
 These apply to every milestone.
 
 - Downloads stream straight to disk. Nothing large is held in memory.
-- At most 2ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“3 downloads run at once (adjustable in Settings).
+- At most 2ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ3 downloads run at once (adjustable in Settings).
 - Only one download at a time reads a video's details, because that step starts Deno, which takes up to 300 MB for a second or two. The downloading itself still runs in parallel.
 - Audio is kept in its original format unless I ask for a conversion.
 - yt-dlp and other heavy libraries are loaded only when first needed, so the app starts fast.
@@ -118,7 +118,7 @@ Rules that keep this compatible with the efficiency goal:
 - A "reduce motion" switch in Settings turns the game-like motion down.
 - All colours, fonts, spacing and motion timings live in one theme file so the look is easy to change.
 
-**When design work starts:** at milestone 6, not before. Milestones 1ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“5 have no visuals at all. Milestone 6 begins with a style concept (palette, fonts, one mocked-up screen, a motion sample) that I approve before any real screen is built. Collecting references and sketching ideas earlier is fine; building design earlier is not, because the screens depend on what the engine can actually report.
+**When design work starts:** at milestone 6, not before. Milestones 1ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ5 have no visuals at all. Milestone 6 begins with a style concept (palette, fonts, one mocked-up screen, a motion sample) that I approve before any real screen is built. Collecting references and sketching ideas earlier is fine; building design earlier is not, because the screens depend on what the engine can actually report.
 
 ## 8. Requirements and dependencies
 
@@ -207,7 +207,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 5 | API | Done, Nov 16, 2026 |
 | 6 | Design concept | Direction approved Nov 16, 2026. Deep green `#063420` with the Foxglove pink accent |
 | 7 | UI v1 in its window | Done, Nov 17, 2026. Tried by hand by me |
-| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 4 done (one-post sign, tree bases, background reaches the ground). Four finished-download ideas proposed, waiting for my choice |
+| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 4 done (one-post sign, tree bases, background reaches the ground). Finished-download moment built (hop and spores, mushrooms, stamp), on trial |
 | 9 | Repo hygiene | Not started (optional) |
 
 ### Nov 16, 2026: Milestone 0, spec review and planning
@@ -1165,3 +1165,24 @@ Rules all four follow: under a second, drawn in the forest's 3-pixel steps, noth
 Claude's recommendation: 1 and 3 together. The spore puff is seen on every screen, and the mushrooms turn a long playlist into a forest floor slowly filling up, which uses the forest itself. For a whole playlist finishing, one bigger moment could follow later.
 
 **What was tested:** each idea plays in the browser view, checked from the page's own state (spores, firefly, Library +1, mushrooms, stamp and sparks all appear and clean up).
+
+### Nov 17, 2026: Milestone 8, the finished-download moment, on trial
+
+My choice: I really like the mushroom jumping in idea 1, and also ideas 3 and 4. It might be too much, but I want to try all of them at once. So all three are built into the app:
+
+| Part | Where | What happens |
+| --- | --- | --- |
+| Hop and spores | Title bar | The mushroom hops and puffs out nine pink and cream spores. Seen on every screen |
+| A mushroom grows | Forest floor, behind the screen's content | A small mushroom grows at a random spot on the grass. Up to 40 stay; then the oldest goes. Not saved: the floor is empty at each start |
+| Carved stamp | Finished rows in the Queue | A wooden "Got it" plank thumps onto the row with four pink sparks, and the row dips. Later (scrolling back, switching screens) the plank just sits there without moving. The Library has no plank, since everything there is finished |
+
+How it works:
+
+- `state.svelte.js` notices the moment a download turns to done (`celebrate`): it counts it, notes the time, and adds a mushroom. A download already done when the app starts is not celebrated.
+- To let mushrooms stand behind the cards but in front of the forest, the veil that keeps text readable moved from each screen into its own layer in `App.svelte`. Order from back to front: forest, veil, floor with mushrooms, screen.
+- With motion set to Reduced, everything appears at once without moving.
+- Cost: nothing runs between finishes. Each finish adds one small picture and a few short animations.
+
+**What was tested:** a real download (a 19-second video) in the browser view. The hop, spores, mushroom, stamp and dip all started the moment it finished. The spores cleaned themselves up, the mushroom stands on the grass, and after switching screens the plank no longer replays. The real app window still opens and works (script test). The test download and its Library entry were deleted afterwards.
+
+**Not done:** I have not tried it by hand yet, and whether it is too much is still open.

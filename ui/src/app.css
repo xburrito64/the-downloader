@@ -48,8 +48,8 @@ input { user-select: text; }
 .well:focus { border-color: var(--accent); outline: none; }
 
 /* every screen */
-.screen { padding: 22px 20px 14px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; min-height: 0; height: 100%; background: var(--veil); transition: background-color var(--settle); }
-.screen.open { background: linear-gradient(to bottom, var(--veil), var(--veil-thin) 70%); }
+.screen { padding: 22px 20px 14px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; min-height: 0; height: 100%; }
+/* .screen.open marks an empty screen: App.svelte thins the veil behind it so the forest shows */
 .head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-right: 10px; }
 .head h1 { font: 400 40px/1 var(--font-display); letter-spacing: .5px; margin-right: auto; }
 .head .sub { color: var(--ink-soft); }

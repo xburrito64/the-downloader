@@ -10,6 +10,8 @@ export const app = $state({
   jobs: [],            // waiting, running and paused downloads, plus the ones that finished since the app opened
   historyVersion: 0,   // goes up whenever a download finishes, so the Library knows to reload
   notice: null,        // { text, kind } shown in the status bar for a few seconds
+  finished: 0,         // downloads finished since the app opened; each one plays the finish moment
+  sprouts: [],         // mushrooms on the forest floor, one per finished download this session
   loadError: "",
 });
 
@@ -39,9 +41,22 @@ export function activeCount() {
   return count;
 }
 
+// When each download finished, by job number. Plain, not reactive: rows read it when their job changes.
+export const finishedAt = new Map();
+const MAX_SPROUTS = 40;
+
+function celebrate(job) {
+  finishedAt.set(job.id, Date.now());
+  app.finished++;
+  // Each one grows a mushroom somewhere on the floor. The oldest goes once there are too many.
+  app.sprouts.push({ id: job.id, left: 2 + Math.random() * 94, lift: Math.floor(Math.random() * 6) * 3 });
+  if (app.sprouts.length > MAX_SPROUTS) app.sprouts.shift();
+}
+
 export function putJob(job) {
   const index = app.jobs.findIndex((existing) => existing.id === job.id);
   const before = index >= 0 ? app.jobs[index].status : "";
+  if (job.status === "done" && before !== "done") celebrate(job);   // before the row sees its new state
   if (index >= 0) app.jobs[index] = job;
   else app.jobs.push(job);
   // A paused or waiting download keeps its bar but not its old speed.

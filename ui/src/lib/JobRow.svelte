@@ -2,13 +2,16 @@
   // One download as a row: cover, names, what is happening, and its buttons. Used by Queue and Library.
   import Cover from "./Cover.svelte";
   import { api } from "./api.js";
-  import { attempt, notify, progress } from "./state.svelte.js";
+  import { attempt, finishedAt, notify, progress } from "./state.svelte.js";
   import { speed } from "./format.js";
 
   let { job, onforget = null } = $props();
 
   const live = $derived(progress[job.id]);
   const fraction = $derived(job.status === "done" ? 1 : (live?.fraction ?? 0));
+  // The finish moment, part 3: finished rows in the Queue carry a wooden "Got it" plank.
+  // It thumps down only right after the download finished; later (scrolling back, switching screens) it just sits there.
+  const fresh = $derived(job.status === "done" && Date.now() - (finishedAt.get(job.id) ?? 0) < 1500);
   const stages = { downloading: "Downloading", converting: "Converting", tagging: "Adding tags" };
 
   const line = $derived.by(() => {
@@ -38,11 +41,11 @@
   }
 </script>
 
-<div class="row" class:wide={job.provider === "youtube"} class:failed={job.status === "failed"} class:done={job.status === "done"}>
+<div class="row" class:thud={fresh && !onforget} class:wide={job.provider === "youtube"} class:failed={job.status === "failed"} class:done={job.status === "done"}>
   <div class="art"><Cover url={job.cover_url} label={job.title} wide={job.provider === "youtube"} /></div>
   <div class="text">
     <h4 title={job.title}>{job.title}</h4>
-    <p class="who">{[job.artist, job.group].filter(Boolean).join(" Ãƒâ€šÃ‚Â· ") || (job.provider === "youtube" ? "YouTube" : "Spotify")}</p>
+    <p class="who">{[job.artist, job.group].filter(Boolean).join(" ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· ") || (job.provider === "youtube" ? "YouTube" : "Spotify")}</p>
     <p class="state" title={job.status === "failed" ? line : null}>{line}</p>
     {#if job.status === "running" || job.status === "paused"}
       <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(fraction * 100)}>
@@ -60,6 +63,7 @@
     {:else if job.status === "failed"}
       <button class="key" onclick={retry}>Try again</button>
     {:else if job.status === "done"}
+      {#if !onforget}<span class="stamp" class:fresh>Got it<i></i><i></i><i></i><i></i></span>{/if}
       <button class="key" onclick={() => act("reveal")}>Show file</button>
     {/if}
     {#if onforget}
@@ -83,6 +87,21 @@
   .failed .state { color: var(--rose); }
   .bar { height: 8px; border-radius: 4px; background: var(--edge); overflow: hidden; margin-top: 4px; }
   .bar i { display: block; height: 100%; background: var(--accent); transform-origin: left; transition: transform 300ms linear; }
-  .actions { display: flex; gap: 8px; }
+  .actions { display: flex; gap: 8px; align-items: center; }
+  .stamp {
+    position: relative; margin-right: 10px; padding: 3px 11px 5px; font: 400 22px/1 var(--font-display); color: var(--ink); white-space: nowrap;
+    background: var(--wood); box-shadow: 0 0 0 3px var(--wood-dark), inset 0 3px 0 var(--wood-lit); transform: rotate(-7deg);
+  }
+  .stamp.fresh { animation: stamp 260ms steps(4) both; }
+  @keyframes stamp { from { transform: scale(2.2) rotate(-16deg); opacity: 0; } }
+  .stamp i { position: absolute; width: 6px; height: 6px; background: var(--accent); opacity: 0; }
+  .stamp.fresh i { animation: spark 420ms steps(4) 230ms; }
+  .stamp i:nth-child(1) { left: -3px; top: -3px; --dx: -15px; --dy: -12px; }
+  .stamp i:nth-child(2) { right: -3px; top: -3px; --dx: 15px; --dy: -12px; }
+  .stamp i:nth-child(3) { left: -3px; bottom: -3px; --dx: -15px; --dy: 12px; }
+  .stamp i:nth-child(4) { right: -3px; bottom: -3px; --dx: 15px; --dy: 12px; }
+  @keyframes spark { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
+  .row.thud { animation: thud 200ms steps(3) 220ms; }
+  @keyframes thud { 50% { transform: translateY(3px); } }
   .quiet { background: var(--panel); color: var(--ink-soft); }
 </style>
