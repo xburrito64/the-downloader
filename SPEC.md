@@ -1475,3 +1475,27 @@ My wish (the owner): "無職転生" by 藤澤慶昌 said "No matching recording 
 - **The album is opened when the title search finds nothing convincing.** The app searches YouTube Music for the song's album (from Spotify), opens it when the name matches, and scores its track list. The song is then found at 96% fit (2:18 on YouTube Music, 2:17 on Spotify). This costs two more requests, and only for songs the normal search could not place; easy songs still cost one search, and the video search is skipped when the album had it.
 - **Full-width brackets count as notes.** Japanese and Chinese titles write notes in （…） or 【…】, for example "旅人の唄（『無職転生』より）". These are now ignored like ordinary (…) and […] notes, so the title compares as "旅人の唄".
 - **Tested:** 7 new checks against the real YouTube Music (this song found and trusted, no video search needed, the bracket rules, an easy song still one search). Coffee Breath, Frame of Mind, Bohemian Rhapsody and Blinding Lights still match at 100%. The fallback and login checks pass.
+
+### Nov 17, 2026: No more guessing, and searching for a match by hand
+
+My wish (the owner): after the fix above, the song was picked automatically, but from a wrong recording ("a random dude"; it was the a cappella cover video that had topped Other match with 68% fit). And when the right recording is not under Other match, there was no way to pick it myself. A more careful match plus a way to look the song up myself is better than a weird automatic pick.
+
+**Why the wrong one came:** the window had been open since before the fix, so it still ran the old matching (the engine reads its code once at start). The old matching trusted anything at 60% fit or more, and a video counted as the right artist when the artist's name was anywhere in its title. The a cappella cover names the composer in its title.
+
+**Stricter automatic choice.** A recording is only picked on its own when all of these hold; otherwise the song waits with "No sure match on YouTube Music. Use Other match to pick one or search for it yourself.":
+
+- The main artist is the artist of the recording: the catalogue's artist, or the artist's own channel. A name that only appears in a video's title, or a name that is merely close ("Johann Debussy" against "Claude Debussy"), no longer counts.
+- The title is nearly the same (80% or more alike). A soundtrack video named after the series is no longer taken for a song of the same name.
+- The length is within 10 seconds.
+- Nothing marks another performance: live, cover, karaoke, a cappella, piano, music box, backing track, and the Japanese words for them (歌ってみた, カバー, カラオケ, アカペラ, ピアノ, オルゴール). The same word in either language counts as one, so a karaoke song matches a karaoke recording.
+
+Two improvements keep normal songs matching: YouTube Music writes Japanese songs as "うっせぇわ - Usseewa", and each part of such a title now counts. And inside the right album, the track at the same position with the same length is the same song even when the title is spelled differently.
+
+Untrusted results are no longer cut to one number in Other match (every one said 55%); they are scaled below 60%, so their order still shows which is closest.
+
+**Other match can search.** A search box at the top takes any words, which search YouTube Music's songs and videos, or a pasted YouTube or YouTube Music link, which shows exactly that recording. Results get a fit like the suggestions. Suggestions brings the app's own list back.
+
+**Tested:**
+- 14 checks against the real YouTube Music: the a cappella video and a series-named video are no longer trusted, "Artist - Song" videos are understood, a cover word in Japanese is caught, links are read, and a dead link gives nothing.
+- 40 real Spotify songs (pop, rock, live, remixes, many Japanese titles). 38 got a trusted match, every one of them the right artist and within 2 seconds. Ado's "Usseewa" had gone to a drums backing track and Fujii Kaze's "Shinunoga E-Wa" to a re-upload with subtitles; both now go to the official songs. The 2 refused are a live album that YouTube Music cannot play and a "Clair de Lune" by an unknown pianist; both wait for a hand pick, with the closest listed first.
+- In the window with a separate test engine: Other match lists 無職転生 at 100% first; a typed search and a pasted music.youtube.com link both work. The fallback, login and store checks pass.

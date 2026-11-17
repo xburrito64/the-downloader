@@ -44,7 +44,7 @@ export const api = {
   resumeAll: () => call("POST", "/api/queue/resume-all"),
   cancelAll: () => call("POST", "/api/queue/cancel-all"),
   job: (id, action) => call("POST", `/api/jobs/${id}/${action}`),
-  matches: (id) => call("GET", `/api/jobs/${id}/matches`),
+  matches: (id, query = "") => call("GET", `/api/jobs/${id}/matches${query ? `?q=${encodeURIComponent(query)}` : ""}`),
   rematch: (id, videoId) => call("POST", `/api/jobs/${id}/rematch`, { video_id: videoId }),
   listen: (videoId) => call("POST", "/api/listen", { video_id: videoId }),
   updateCheck: () => call("GET", "/api/update"),

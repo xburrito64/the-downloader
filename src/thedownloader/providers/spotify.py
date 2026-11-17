@@ -205,6 +205,13 @@ class SpotifyProvider:
         except Exception as exc:  # ytmusicapi raises plain exceptions for network and parsing problems
             raise ProviderError(f"Searching YouTube Music failed: {exc}") from exc
 
+    def search_matches(self, item: Item, query: str) -> list[Candidate]:
+        """Recordings for a search typed by hand, or the one video of a pasted link."""
+        try:
+            return self._matcher.search(item, query)
+        except Exception as exc:
+            raise ProviderError(f"Searching YouTube Music failed: {exc}") from exc
+
     def download(
         self,
         item: Item,
@@ -217,7 +224,7 @@ class SpotifyProvider:
         else:
             found = self.candidates(item)
             if not found or found[0].score < MIN_SCORE:
-                raise ProviderError("No matching recording was found on YouTube Music.")
+                raise ProviderError("No sure match on YouTube Music. Use Other match to pick one or search for it yourself.")
             # The best few that are trusted. If YouTube blocks one (age-restricted, removed,
             # not in this country), the same song is often there again as another recording.
             choices = [c.video_id for c in found if c.score >= MIN_SCORE][:_FALLBACKS]

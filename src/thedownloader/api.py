@@ -453,7 +453,9 @@ def create_app(state: AppState) -> Starlette:
             raise ApiError(404, "No such download.")
         if job.item.provider != "spotify":
             raise ApiError(422, "Only Spotify songs have matches to choose from.")
-        found = state.provider("spotify").candidates(job.item)
+        query = request.query_params.get("q", "").strip()[:300]  # typed by hand in Other match
+        spotify = state.provider("spotify")
+        found = spotify.search_matches(job.item, query) if query else spotify.candidates(job.item)
         return [{**asdict(c), "chosen": c.video_id == job.item.match_id} for c in found]
 
     def job_rematch(request: Request, body: dict):
