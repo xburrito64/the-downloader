@@ -205,9 +205,9 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 3 | Spotify provider | Done, Nov 16, 2026 |
 | 4 | Core queue | Done, Nov 16, 2026 |
 | 5 | API | Done, Nov 16, 2026 |
-| 6 | Design concept | Direction approved Nov 16, 2026. Accent: Foxglove for now. Green rebuilt from a reference image, waiting for a yes |
-| 7 | UI v1 in its window | Done (Nov 17, 2026). Not yet tried by hand in the real window |
-| 8 | Polish | Not started |
+| 6 | Design concept | Direction approved Nov 16, 2026. Deep green `#063420` with the Foxglove pink accent |
+| 7 | UI v1 in its window | Done, Nov 17, 2026. Tried by hand by me |
+| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass waiting for my answers |
 | 9 | Repo hygiene | Not started (optional) |
 
 ### Nov 16, 2026: Milestone 0, spec review and planning
@@ -1003,3 +1003,52 @@ So "more vibrant" meant two things: **less blue in the green, and nearly twice a
 - The first status check after a restart of the PC can take more than a second.
 - Choosing a different YouTube match for a Spotify song is not in the UI.
 - Changing "downloads at the same time" needs a restart.
+
+### Nov 17, 2026: Milestone 8, part 1: measurements and rough spots
+
+**Decision by me**
+
+- I tried the window by hand: it works.
+
+**Memory, measured properly**
+
+The 456 MB from milestone 7 was misleading. It added up each process's memory including code that Windows shares between processes (and with Edge itself, if it is open). Counting only the memory that belongs to the app alone:
+
+| Part | Memory of its own |
+| --- | --- |
+| Engine (Python, with the window library) | 55 MB |
+| Window: main process | 28 MB |
+| Window: graphics | 26 MB |
+| Window: the page itself | 17 MB |
+| Window: network, storage, crash reporter | 13 MB |
+| **Total** | **about 141 MB** |
+
+Window options that were tried:
+
+| Option | Result | Decision |
+| --- | --- | --- |
+| Turn off graphics-card drawing | Saves 18 MB, but all motion would be drawn by the processor and be less smooth | Not used: smooth motion matters more here |
+| Graphics inside the main process | Saves 9 MB, one process fewer, but a graphics crash would take the window down | Not used: too little gain |
+| Switching off a list of Edge features | The window did not start at all | Not used |
+
+So the window stays on its default options. 141 MB of its own is the cost of a window built on the browser engine Windows ships; a hand-made native window would be smaller but could not do this design.
+
+**Rough spots fixed**
+
+- **Failed downloads now say what happened in plain words** (new file `errors.py`). Example: instead of `[download] Got error: ('Connection aborted.', ConnectionResetError(10054, ...` it says "The connection dropped. Check your internet, then try again." Covered: connection problems, robot check, age-restricted, private, members-only, removed, not available in the country, not started yet, quality not offered, too many requests, refused, disk full, file in use, output folder unreachable, ffmpeg missing. Anything unknown is passed on, shortened.
+- **"Downloads at the same time" now takes effect at once**, without a restart. Raising it starts more right away; lowering it lets the running ones finish first.
+- **Pick all and Pick none are two buttons now.**
+
+**What was tested**
+
+- 16 new checks: 14 for the error wording, 2 for changing the number of parallel downloads while running (1 to 3, and 3 to 1). All pass.
+- The 35 queue checks and 43 API checks still pass. One API check was updated, because it relied on the old behaviour that the parallel setting waited for a restart.
+- The real window still opens and answers (script test).
+
+**Not done**
+
+- Choosing a different YouTube match for a Spotify song in the UI.
+- YouTube covers are still cut to a square. This is a design question.
+- Memory while downloading has not been measured with the window open.
+
+**Next: the design pass, together.** Open questions for me are in the chat: the forest background, the mascot, the finished-download moment, empty screens, and cover shape.

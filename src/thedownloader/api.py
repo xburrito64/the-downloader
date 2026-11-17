@@ -265,6 +265,7 @@ def create_app(state: AppState) -> Starlette:
     def put_settings(_request: Request, body: dict):
         _apply_settings(state.settings, body)
         config.save(state.settings, state.settings_file)
+        state.queue.set_parallel(state.settings.max_parallel_downloads)  # takes effect at once
         return asdict(state.settings)
 
     # ---- Spotify login ---------------------------------------------------

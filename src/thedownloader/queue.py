@@ -13,6 +13,7 @@ from pathlib import Path
 
 from . import naming
 from .config import Settings
+from .errors import explain
 from .providers.base import DownloadOptions, Item, Progress, ProviderError, Stopped
 from .store import ACTIVE, Job, Store
 
@@ -36,6 +37,9 @@ class DownloadQueue:
         self._wake = threading.Condition()
         self._closing = False
         self._threads: list[threading.Thread] = []
+        self._workers: dict[int, threading.Thread] = {}  # worker number -> its thread
+        self._limit = 1
+        self._started = False
         # For each running job: why it should stop ("" = keep going).
         self._stop_reason: dict[int, str] = {}
         self._running = 0
@@ -140,12 +144,27 @@ class DownloadQueue:
         if self._threads:
             return
         self._closing = False
+        self._started = True
         self._store.requeue_interrupted()
-        count = max(1, min(8, self._settings.max_parallel_downloads))
-        for number in range(count):
-            thread = threading.Thread(target=self._work, name=f"download-{number + 1}", daemon=True)
-            thread.start()
-            self._threads.append(thread)
+        self.set_parallel(self._settings.max_parallel_downloads)
+
+    def set_parallel(self, count: int) -> None:
+        """Change how many downloads run at the same time. Works while the queue is running.
+
+        More: extra workers start at once. Fewer: the extra workers finish what they
+        are downloading and then stop; nothing is interrupted.
+        """
+        with self._wake:
+            self._limit = max(1, min(8, count))
+            if not self._started or self._closing:
+                return
+            for number in range(self._limit):
+                if number not in self._workers:
+                    thread = threading.Thread(target=self._work, args=(number,), name=f"download-{number + 1}", daemon=True)
+                    self._workers[number] = thread
+                    thread.start()
+            self._threads = list(self._workers.values())
+            self._wake.notify_all()
 
     def close(self) -> None:
         """Stop the workers. Running downloads go back to the queue and continue next time."""
@@ -153,10 +172,12 @@ class DownloadQueue:
             self._closing = True
             for job_id in self._stop_reason:
                 self._stop_reason[job_id] = self._stop_reason[job_id] or "closing"
+            threads = list(self._workers.values())
             self._wake.notify_all()
-        for thread in self._threads:
+        for thread in threads:
             thread.join(timeout=30)
         self._threads.clear()
+        self._started = False
 
     def wait_until_idle(self, timeout: float | None = None) -> bool:
         """Block until nothing is queued or running. Used by the terminal commands and tests."""
@@ -165,10 +186,11 @@ class DownloadQueue:
                 lambda: self._running == 0 and self._store.count(("queued", "running")) == 0, timeout
             )
 
-    def _work(self) -> None:
+    def _work(self, number: int) -> None:
         while True:
             with self._wake:
-                if self._closing:
+                if self._closing or number >= self._limit:
+                    self._workers.pop(number, None)
                     return
                 job = self._store.claim_next()
                 if job is None:
@@ -228,7 +250,7 @@ class DownloadQueue:
         except ProviderError as exc:
             self._emit_job(self._store.set_status(job.id, "failed", error=str(exc)))
         except Exception as exc:
-            self._emit_job(self._store.set_status(job.id, "failed", error=f"Unexpected error: {exc}"))
+            self._emit_job(self._store.set_status(job.id, "failed", error=explain(f"Unexpected error: {exc}")))
         else:
             self._emit_job(self._store.set_status(job.id, "done", file_path=str(path)))
 

@@ -111,7 +111,7 @@
               <button aria-pressed={app.settings.max_parallel_downloads === count} onclick={() => set("max_parallel_downloads", count)}>{count}</button>
             {/each}
           </span>
-          <span class="hint">Takes effect the next time the app starts.</span>
+          <span class="hint">More is not always faster: YouTube slows down a PC that asks for too much at once.</span>
         </span>
       </div>
     </section>

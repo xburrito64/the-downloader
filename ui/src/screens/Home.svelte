@@ -126,7 +126,8 @@
       <h3 title={found.title}>{found.title}</h3>
       <span class="sub">{pickedCount} of {found.count} picked</span>
       {#if found.count > 1}
-        <button class="key" onclick={() => setAll(pickedCount !== found.count)}>{pickedCount === found.count ? "Pick none" : "Pick all"}</button>
+        <button class="key" onclick={() => setAll(true)} disabled={pickedCount === found.count}>Pick all</button>
+        <button class="key" onclick={() => setAll(false)} disabled={!pickedCount}>Pick none</button>
       {/if}
     </div>
 

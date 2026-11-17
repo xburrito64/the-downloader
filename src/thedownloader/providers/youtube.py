@@ -11,6 +11,7 @@ from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from ..errors import explain
 from .base import DownloadOptions, Item, Progress, ProviderError, Resolved, Stopped
 
 _HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}
@@ -41,7 +42,7 @@ def _clean_error(message: str) -> str:
     message = re.sub(r"^ERROR:\s*", "", message)
     message = re.sub(r"^\[[\w:+]+\]\s*[\w-]+:\s*", "", message)  # "[youtube] <id>: "
     # yt-dlp appends advice meant for command-line users; keep the first sentence block.
-    return message.split("; please report", 1)[0].split("\n", 1)[0].strip() or "Unknown error"
+    return explain(message.split("; please report", 1)[0].split("\n", 1)[0].strip())
 
 
 def _thumbnail(info: dict) -> str:
