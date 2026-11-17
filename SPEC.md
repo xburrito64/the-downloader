@@ -4,7 +4,7 @@ A Spotify + YouTube downloader app. Version 2 of the spec, rewritten Nov 16, 202
 
 This file is the single source of truth for the project. It has two parts:
 
-- **Sections 1ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ11** describe what is being built and why.
+- **Sections 1ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“11** describe what is being built and why.
 - **Section 12 (Development log)** records every step of development as it happens. It is updated at the end of each milestone, and whenever a decision changes.
 
 ## 1. Goal
@@ -56,7 +56,7 @@ The provider interface is the important part. Adding a third source later (for e
 These apply to every milestone.
 
 - Downloads stream straight to disk. Nothing large is held in memory.
-- At most 2ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ3 downloads run at once (adjustable in Settings).
+- At most 2ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“3 downloads run at once (adjustable in Settings).
 - Only one download at a time reads a video's details, because that step starts Deno, which takes up to 300 MB for a second or two. The downloading itself still runs in parallel.
 - Audio is kept in its original format unless I ask for a conversion.
 - yt-dlp and other heavy libraries are loaded only when first needed, so the app starts fast.
@@ -118,7 +118,7 @@ Rules that keep this compatible with the efficiency goal:
 - A "reduce motion" switch in Settings turns the game-like motion down.
 - All colours, fonts, spacing and motion timings live in one theme file so the look is easy to change.
 
-**When design work starts:** at milestone 6, not before. Milestones 1ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ5 have no visuals at all. Milestone 6 begins with a style concept (palette, fonts, one mocked-up screen, a motion sample) that I approve before any real screen is built. Collecting references and sketching ideas earlier is fine; building design earlier is not, because the screens depend on what the engine can actually report.
+**When design work starts:** at milestone 6, not before. Milestones 1ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“5 have no visuals at all. Milestone 6 begins with a style concept (palette, fonts, one mocked-up screen, a motion sample) that I approve before any real screen is built. Collecting references and sketching ideas earlier is fine; building design earlier is not, because the screens depend on what the engine can actually report.
 
 ## 8. Requirements and dependencies
 
@@ -207,7 +207,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 5 | API | Done, Nov 16, 2026 |
 | 6 | Design concept | Direction approved Nov 16, 2026. Deep green `#063420` with the Foxglove pink accent |
 | 7 | UI v1 in its window | Done, Nov 17, 2026. Tried by hand by me |
-| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 4 done (one-post sign, tree bases, background reaches the ground). Finished-download moment still open |
+| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 4 done (one-post sign, tree bases, background reaches the ground). Four finished-download ideas proposed, waiting for my choice |
 | 9 | Repo hygiene | Not started (optional) |
 
 ### Nov 16, 2026: Milestone 0, spec review and planning
@@ -1148,3 +1148,20 @@ My notes after round 3, and what was done:
 **What was tested:** looked at in the browser view at 1120 by 760 and at 2560 by 1392 (maximised). Only the picture and styles changed.
 
 **Not done:** the finished-download moment.
+
+### Nov 17, 2026: Milestone 8, ideas for the finished-download moment
+
+I asked for proposals. Four ideas are built as a preview page, `design/finish.html`, each played on a small copy of the window with a Play again button:
+
+| Idea | What happens | What it tells you |
+| --- | --- | --- |
+| 1. Spore puff | The mushroom in the title bar hops and puffs out pink spores; the row glows once | Something finished, seen from any screen |
+| 2. Firefly to the Library | A firefly lifts off the finished song and flies to the Library tab, which lights up with +1 | Where the file went |
+| 3. A mushroom grows | Each finished download grows a small mushroom on the forest floor; a long playlist fills the floor. Gone at the next start | How much has finished this session |
+| 4. Carved stamp | A wooden "Got it" plank thumps onto the row, with a few pink sparks | This one is done |
+
+Rules all four follow: under a second, drawn in the forest's 3-pixel steps, nothing runs while nothing finishes, and with motion set to Reduced they become a plain instant change. They can be combined.
+
+Claude's recommendation: 1 and 3 together. The spore puff is seen on every screen, and the mushrooms turn a long playlist into a forest floor slowly filling up, which uses the forest itself. For a whole playlist finishing, one bigger moment could follow later.
+
+**What was tested:** each idea plays in the browser view, checked from the page's own state (spores, firefly, Library +1, mushrooms, stamp and sparks all appear and clean up).

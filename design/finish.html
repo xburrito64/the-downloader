@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finish moments</title>
+<!-- Milestone 8: four ideas for the moment a download finishes, to choose from.
+     Open this file in a browser from the design folder. Each idea replays with its button. -->
+<style>
+  @font-face { font-family: "Jersey 15"; src: url("../ui/src/fonts/jersey-15-latin-400.woff2") format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url("../ui/src/fonts/nunito-latin-variable.woff2") format("woff2"); font-weight: 200 1000; }
+  :root {
+    --desk: #021209; --base: #063420; --panel: #0a4a2c; --raised: #0f6239; --edge: #020f08;
+    --ink: #f8efd8; --ink-soft: #bfe0c8; --accent: #ff7fb6; --accent-ink: #3a0a22; --good: #a6f29b;
+    --wood: #5c3520; --wood-lit: #7d4a2a; --wood-dark: #27140c; --spark: #c8f5d0;
+    --font-display: "Jersey 15", monospace; --font-body: "Nunito", "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--desk); color: var(--ink); font: 500 16px/1.5 var(--font-body); padding: 28px 16px 60px; }
+  main { max-width: 1180px; margin: 0 auto; }
+  h1 { font: 400 46px/1 var(--font-display); margin: 0 0 6px; }
+  .lead { color: var(--ink-soft); max-width: 70ch; margin: 0 0 22px; }
+  .top { display: flex; gap: 12px; align-items: center; margin-bottom: 26px; flex-wrap: wrap; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 26px; }
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+  .demo h2 { font: 400 32px/1 var(--font-display); margin: 0 0 4px; }
+  .demo p { color: var(--ink-soft); margin: 0 0 12px; font-size: 15px; max-width: 60ch; }
+  button.again {
+    border: 0; cursor: pointer; margin-top: 12px; padding: 7px 14px 8px; border-radius: 8px; background: var(--raised); color: var(--ink);
+    font: 700 14px var(--font-body); box-shadow: 0 4px 0 var(--edge);
+  }
+  button.again:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
+  button.all { font: 400 24px/1 var(--font-display); background: var(--accent); color: var(--accent-ink); padding: 9px 18px 11px; border-radius: 12px; border: 0; cursor: pointer; box-shadow: 0 5px 0 var(--edge); }
+
+  /* a small copy of the app window */
+  .stage { position: relative; height: 250px; border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; isolation: isolate;
+    background: #052b1b url("../ui/src/art/forest.png") repeat-x center bottom / 1280px 1440px; image-rendering: pixelated; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(10, 74, 44, .9); font: 400 20px/1 var(--font-display); }
+  .mascot { width: 26px; height: 26px; image-rendering: pixelated; }
+  .mid { display: grid; grid-template-columns: 74px 1fr; min-height: 0; }
+  .rail { background: rgba(10, 74, 44, .9); padding: 10px 7px; }
+  .lib { position: relative; display: grid; justify-items: center; gap: 2px; padding: 8px 2px 5px; border-radius: 10px; color: var(--ink-soft); font-size: 12px; font-weight: 700; }
+  .lib svg { width: 22px; height: 22px; fill: currentColor; }
+  .lib .plus { position: absolute; top: -2px; right: 4px; font: 400 18px/1 var(--font-display); color: var(--accent); opacity: 0; }
+  .area { position: relative; padding: 16px 16px 0; background: rgba(6, 52, 32, .8); image-rendering: auto; }
+  .row { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 12px; align-items: center; background: var(--raised); border-radius: 12px; padding: 7px 12px 7px 7px; box-shadow: 0 4px 0 var(--edge); position: relative; }
+  .cover { aspect-ratio: 1; border-radius: 7px; background: linear-gradient(135deg, #ff9fc8, #7a2c5a); }
+  .row h4 { margin: 0; font: 800 15px/1.25 var(--font-body); }
+  .state { margin: 0 !important; font-size: 13px !important; font-weight: 700; color: var(--ink-soft) !important; }
+  .done .state { color: var(--good) !important; }
+  .prog { height: 7px; border-radius: 4px; background: var(--edge); overflow: hidden; margin-top: 3px; }
+  .prog i { display: block; height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(0); }
+  .done .prog { opacity: 0; transition: opacity 300ms 200ms; }
+  .fx { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+  .ground { position: absolute; left: 0; right: 0; bottom: 0; height: 40px; }
+
+  /* 1. spore puff */
+  .hop { animation: hop 520ms steps(6) both; }
+  @keyframes hop { 0% { transform: none; } 30% { transform: translateY(-8px) scaleY(1.08); } 60% { transform: translateY(0) scaleY(.88); } 78% { transform: translateY(-3px); } 100% { transform: none; } }
+  .spore { position: absolute; width: 4px; height: 4px; background: var(--accent); animation: spore 760ms steps(8) forwards; }
+  .spore.pale { background: var(--ink); }
+  @keyframes spore { to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+  .glow { animation: glow 700ms steps(5); }
+  @keyframes glow { 0%, 100% { box-shadow: 0 4px 0 var(--edge); } 30% { box-shadow: 0 4px 0 var(--edge), 0 0 0 3px var(--accent); } }
+
+  /* 2. firefly */
+  .fly { position: absolute; left: 0; top: 0; width: 6px; height: 6px; background: var(--spark); box-shadow: 0 0 0 3px rgba(200, 245, 208, .25), 0 0 12px 4px rgba(200, 245, 208, .5); }
+  .lib.got { animation: libglow 900ms steps(6); }
+  @keyframes libglow { 0%, 100% { background: none; color: var(--ink-soft); } 25% { background: var(--raised); color: var(--ink); transform: scale(1.08); } }
+  .lib.got .plus { animation: plus 1100ms steps(8) forwards; }
+  @keyframes plus { 0% { opacity: 1; transform: translateY(4px); } 60% { opacity: 1; transform: translateY(-4px); } 100% { opacity: 0; transform: translateY(-8px); } }
+
+  /* 3. a mushroom sprouts */
+  .sprout { position: absolute; width: 32px; height: 32px; image-rendering: pixelated; transform-origin: bottom; animation: sprout 640ms steps(1) both; }
+  @keyframes sprout { 0% { transform: scaleY(0); } 20% { transform: scaleY(.25); } 40% { transform: scaleY(.6); } 60% { transform: scaleY(1.15) scaleX(.9); } 80% { transform: scaleY(.92) scaleX(1.06); } 100% { transform: none; } }
+
+  /* 4. carved stamp */
+  .stamp { position: absolute; right: 26px; top: 50%; padding: 4px 12px 6px; font: 400 26px/1 var(--font-display); color: var(--ink);
+    background: var(--wood); box-shadow: 0 0 0 3px var(--wood-dark), inset 0 3px 0 var(--wood-lit); transform: translateY(-50%) rotate(-7deg);
+    animation: stamp 260ms steps(4) both; }
+  @keyframes stamp { from { transform: translateY(-50%) scale(2.2) rotate(-16deg); opacity: 0; } }
+  .thud { animation: thud 200ms steps(3) 220ms; }
+  @keyframes thud { 50% { transform: translateY(3px); } }
+  .spark { position: absolute; width: 6px; height: 6px; background: var(--accent); animation: spore 420ms steps(4) forwards; }
+</style>
+</head>
+<body>
+<main>
+  <h1>When a download finishes</h1>
+  <p class="lead">Four ideas, each played on a small copy of the window. All of them are short (under a second), drawn in the same 3-pixel steps as the forest, cost nothing while nothing finishes, and become a plain instant change when motion is set to Reduced. They can also be combined.</p>
+  <div class="top"><button class="all" id="all">Play all four</button></div>
+
+  <div class="grid">
+    <section class="demo" data-kind="spores">
+      <h2>1. Spore puff</h2>
+      <p>The mushroom in the title bar hops and puffs out a little cloud of pink spores. The row glows once. Works on every screen, because the title bar is always visible.</p>
+      <div class="stage"></div>
+      <button class="again">Play again</button>
+    </section>
+    <section class="demo" data-kind="firefly">
+      <h2>2. Firefly to the Library</h2>
+      <p>A firefly lifts off the finished song and flies to the Library tab, which lights up with a +1. It shows where the file went.</p>
+      <div class="stage"></div>
+      <button class="again">Play again</button>
+    </section>
+    <section class="demo" data-kind="sprout">
+      <h2>3. A mushroom grows</h2>
+      <p>Each finished download grows a small mushroom on the forest floor at the bottom of the window. Over a long playlist the floor fills up. They are gone the next time the app starts. Press it a few times.</p>
+      <div class="stage"></div>
+      <button class="again">Play again</button>
+    </section>
+    <section class="demo" data-kind="stamp">
+      <h2>4. Carved stamp</h2>
+      <p>A small wooden "Got it" plank thumps onto the row, with a few pink sparks. The original stamp idea, redone in the forest style.</p>
+      <div class="stage"></div>
+      <button class="again">Play again</button>
+    </section>
+  </div>
+</main>
+
+<template id="window">
+  <div class="bar"><img class="mascot" src="../ui/src/art/mascot.png" alt=""><span>THE Downloader</span></div>
+  <div class="mid">
+    <div class="rail"><div class="lib"><svg viewBox="0 0 24 24"><path d="M3 4h8v8H3zM13 4h8v8h-8zM3 14h8v6H3zM13 14h8v6h-8z"/></svg>Library<span class="plus">+1</span></div></div>
+    <div class="area">
+      <div class="row"><div class="cover"></div><div class="text"><h4>Wanderers in the Pines</h4><p class="state">Downloading 0%</p><div class="prog"><i></i></div></div></div>
+      <div class="ground"></div>
+    </div>
+  </div>
+  <div class="fx"></div>
+</template>
+
+<script>
+  const PIXEL = 3;
+  const box = (el, stage) => {
+    const a = el.getBoundingClientRect(), b = stage.getBoundingClientRect();
+    return { x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height, cx: a.left - b.left + a.width / 2, cy: a.top - b.top + a.height / 2 };
+  };
+  const snap = (n) => Math.round(n / PIXEL) * PIXEL;
+  const restart = (el, name) => { el.classList.remove(name); void el.offsetWidth; el.classList.add(name); };
+
+  const moments = {
+    spores(stage, fx) {
+      const mascot = stage.querySelector(".mascot");
+      restart(mascot, "hop");
+      restart(stage.querySelector(".row"), "glow");
+      const m = box(mascot, stage);
+      for (let i = 0; i < 10; i++) {
+        const angle = -Math.PI * (0.05 + 0.9 * i / 9) + (Math.random() - .5) * .3;
+        const reach = 18 + Math.random() * 16;
+        const s = document.createElement("span");
+        s.className = "spore" + (i % 3 === 0 ? " pale" : "");
+        s.style.left = snap(m.cx) + "px"; s.style.top = snap(m.y + 4) + "px";
+        s.style.setProperty("--dx", snap(Math.cos(angle) * reach) + "px");
+        s.style.setProperty("--dy", snap(Math.sin(angle) * reach * .8 + 6) + "px");
+        s.style.animationDelay = "120ms";
+        fx.append(s);
+        setTimeout(() => s.remove(), 1000);
+      }
+    },
+    firefly(stage, fx) {
+      const from = box(stage.querySelector(".cover"), stage), lib = stage.querySelector(".lib"), to = box(lib, stage);
+      const fly = document.createElement("span");
+      fly.className = "fly";
+      fx.append(fly);
+      const at = (x, y) => ({ transform: `translate(${snap(x)}px, ${snap(y)}px)` });
+      const mid = { x: (from.cx + to.cx) / 2, y: Math.min(from.cy, to.cy) - 60 };
+      fly.animate([at(from.cx, from.cy), at(from.cx + 10, from.cy - 30), at(mid.x, mid.y), at(to.cx + 14, to.cy - 18), at(to.cx, to.cy)],
+        { duration: 950, easing: "steps(24, end)" }).finished.then(() => {
+          fly.remove();
+          restart(lib, "got");
+        });
+    },
+    sprout(stage, fx) {
+      const ground = box(stage.querySelector(".ground"), stage);
+      const old = fx.querySelectorAll(".sprout");
+      if (old.length >= 9) old[0].remove();
+      const img = document.createElement("img");
+      img.className = "sprout"; img.src = "../ui/src/art/mascot.png"; img.alt = "";
+      img.style.left = snap(ground.x + 12 + Math.random() * (ground.w - 56)) + "px";
+      img.style.top = snap(ground.y + ground.h - 34 - Math.random() * 6) + "px";
+      fx.append(img);
+    },
+    stamp(stage, fx) {
+      const row = stage.querySelector(".row");
+      row.querySelector(".stamp")?.remove();
+      const stamp = document.createElement("span");
+      stamp.className = "stamp"; stamp.textContent = "Got it";
+      row.append(stamp);
+      restart(row, "thud");
+      setTimeout(() => {
+        const s = box(stamp, stage);
+        [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1]].forEach(([dx, dy]) => {
+          const p = document.createElement("span");
+          p.className = "spark";
+          p.style.left = snap(s.cx + dx * s.w / 2) + "px"; p.style.top = snap(s.cy + dy * s.h / 2) + "px";
+          p.style.setProperty("--dx", dx * 15 + "px"); p.style.setProperty("--dy", dy * 12 + "px");
+          fx.append(p);
+          setTimeout(() => p.remove(), 500);
+        });
+      }, 230);
+    },
+  };
+
+  function play(demo) {
+    const stage = demo.querySelector(".stage");
+    if (!stage.firstElementChild) stage.append(document.getElementById("window").content.cloneNode(true));
+    clearInterval(demo.timer);
+    const row = stage.querySelector(".row"), state = row.querySelector(".state"), bar = row.querySelector(".prog i");
+    row.classList.remove("done");
+    row.querySelector(".stamp")?.remove();
+    let percent = 0;
+    demo.timer = setInterval(() => {
+      percent = Math.min(100, percent + 7);
+      bar.style.transform = `scaleX(${percent / 100})`;
+      state.textContent = `Downloading ${percent}%`;
+      if (percent === 100) {
+        clearInterval(demo.timer);
+        row.classList.add("done");
+        state.textContent = "Saved";
+        moments[demo.dataset.kind](stage, stage.querySelector(".fx"));
+      }
+    }, 70);
+  }
+
+  const demos = [...document.querySelectorAll(".demo")];
+  for (const demo of demos) {
+    demo.querySelector(".again").addEventListener("click", () => play(demo));
+    play(demo);
+  }
+  document.getElementById("all").addEventListener("click", () => demos.forEach(play));
+</script>
+</body>
+</html>
