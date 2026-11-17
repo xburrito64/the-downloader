@@ -208,7 +208,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 6 | Design concept | Direction approved Nov 16, 2026. Deep green `#063420` with the Foxglove pink accent |
 | 7 | UI v1 in its window | Done, Nov 17, 2026. Tried by hand by me |
 | 8 | Polish and the real design pass | Done, Nov 17, 2026 |
-| 9 | Repo hygiene | Files written (README, LICENSE, THIRD_PARTY.md, font licence, screenshots). Repository still private, waiting for my go-ahead |
+| 9 | Repo hygiene | Done, Nov 17, 2026. Public at https://github.com/xburrito64/the-downloader |
 
 ### Nov 16, 2026: Milestone 0, spec review and planning
 
@@ -1286,3 +1286,12 @@ All of them allow publishing this code under MIT. mutagen being GPL only matters
 - The whole history was rewritten while the repository was still private. Every commit now has GitHub's private no-reply address as author (`127124460+xburrito64@users.noreply.github.com`), and future commits in this folder use it too.
 - In every commit, my first name was replaced by neutral wording ("Decisions made by me", "chosen by the owner"), and the one Windows user name in an old path was replaced too. A search of every commit finds neither the name, the email nor the user name.
 - A full backup of the old history was kept on this PC before the rewrite. The rewritten history was pushed once with force; nothing else changed in the files.
+
+### Nov 17, 2026: Milestone 9 finished: the project is public
+
+My go-ahead (the owner): "Yes, make it public."
+
+- The repository is public at https://github.com/xburrito64/the-downloader.
+- Checked on GitHub afterwards: the page shows "Public", the README renders with both screenshots, and GitHub recognises the MIT licence.
+
+All nine milestones are done.
