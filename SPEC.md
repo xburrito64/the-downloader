@@ -1462,4 +1462,4 @@ The owner set the app up for their sister, signed in to YouTube in Firefox (Test
 
 **Tested:** 2 new checks with a stand-in for yt-dlp that refuses without a login and answers with one: with Firefox set up, the link is read on the second try with the login; without a login, the plain sign-in message. Her video read fine from this PC, which is not blocked at the moment. Earlier checks pass.
 
-The version is now 1.1.1 and the fix is pushed, so her copy can get it through Settings > Updates > Update and restart. A GitHub release for 1.1.1 waits for my OK.
+The version is now 1.1.1 and the fix is pushed, so her copy can get it through Settings > Updates > Update and restart. With my OK, it was published as the GitHub release "THE Downloader 1.1.1" (tag `v1.1.1`).
