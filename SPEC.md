@@ -4,7 +4,7 @@ A Spotify + YouTube downloader app. Version 2 of the spec, rewritten Nov 16, 202
 
 This file is the single source of truth for the project. It has two parts:
 
-- **Sections 1Ã¢â‚¬â€œ11** describe what is being built and why.
+- **Sections 1ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“11** describe what is being built and why.
 - **Section 12 (Development log)** records every step of development as it happens. It is updated at the end of each milestone, and whenever a decision changes.
 
 ## 1. Goal
@@ -56,7 +56,7 @@ The provider interface is the important part. Adding a third source later (for e
 These apply to every milestone.
 
 - Downloads stream straight to disk. Nothing large is held in memory.
-- At most 2Ã¢â‚¬â€œ3 downloads run at once (adjustable in Settings).
+- At most 2ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“3 downloads run at once (adjustable in Settings).
 - Only one download at a time reads a video's details, because that step starts Deno, which takes up to 300 MB for a second or two. The downloading itself still runs in parallel.
 - Audio is kept in its original format unless I ask for a conversion.
 - yt-dlp and other heavy libraries are loaded only when first needed, so the app starts fast.
@@ -118,7 +118,7 @@ Rules that keep this compatible with the efficiency goal:
 - A "reduce motion" switch in Settings turns the game-like motion down.
 - All colours, fonts, spacing and motion timings live in one theme file so the look is easy to change.
 
-**When design work starts:** at milestone 6, not before. Milestones 1Ã¢â‚¬â€œ5 have no visuals at all. Milestone 6 begins with a style concept (palette, fonts, one mocked-up screen, a motion sample) that I approve before any real screen is built. Collecting references and sketching ideas earlier is fine; building design earlier is not, because the screens depend on what the engine can actually report.
+**When design work starts:** at milestone 6, not before. Milestones 1ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“5 have no visuals at all. Milestone 6 begins with a style concept (palette, fonts, one mocked-up screen, a motion sample) that I approve before any real screen is built. Collecting references and sketching ideas earlier is fine; building design earlier is not, because the screens depend on what the engine can actually report.
 
 ## 8. Requirements and dependencies
 
@@ -207,7 +207,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 5 | API | Done, Nov 16, 2026 |
 | 6 | Design concept | Direction approved Nov 16, 2026. Deep green `#063420` with the Foxglove pink accent |
 | 7 | UI v1 in its window | Done, Nov 17, 2026. Tried by hand by me |
-| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 2 done (mushroom mascot, standing sign, path, fuller back trees). Finished-download moment still open |
+| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 3 done (fullscreen fix, thick background trunks, rooted trees, three sign shapes). Waiting for my sign choice. Finished-download moment still open |
 | 9 | Repo hygiene | Not started (optional) |
 
 ### Nov 16, 2026: Milestone 0, spec review and planning
@@ -1116,3 +1116,21 @@ Also: the front ferns were moved up a little so the status bar no longer hides t
 **What was tested:** looked at in the browser view at 1120 by 760 (Home, empty). Only the picture and styles changed, the engine is untouched.
 
 **Not done:** the finished-download moment; I have not said yet what else I would change in the forest.
+
+### Nov 17, 2026: Milestone 8, design pass round 3: fullscreen, thick trunks, the sign
+
+My notes after round 2, and what was done:
+
+| Note | What was done |
+| --- | --- |
+| In fullscreen the trees just stop | Mistake in round 1: the picture was 1200 screen pixels tall, and a maximised window is taller. It is now 2160 tall (640 by 720 art pixels), enough for a 4K screen. The big trunks run to the very top and thin out into the dark there, so they never end in a straight cut |
+| The background trees are still too thin, I want very thick trunks | Six thick trunks now stand far off, between the pale far pines and the middle pines, in a muted bark colour so they read as distant. The pines themselves also got thicker trunks (middle row 4 to 7 pixels, near row 6 to 10) |
+| The bottom of the big trees looks pasted in | The trunk now sweeps out into roots in a curve, its bottom edge is scalloped into root toes, the foot is darker, it casts shade on the grass to the right, and grass grows up in front of it |
+| The sign on the floor is a good idea but does not look good yet, try more | The sign is redrawn in the forest's own pixel style: hard edges in 3-pixel steps, planks, thick posts, tufts of grass at the foot. Three shapes are built, pictures in `design/signs/`: two posts (the default for now), one post, and a board lying on the ground |
+
+- The three sign shapes live side by side in `ui/src/app.css` until one is chosen; the other two are then removed.
+- The picture is now 35 kB and costs under 2 MB of memory.
+
+**What was tested:** looked at in the browser view at 1120 by 760 and at 2560 by 1392 (maximised size). Trunks reach the top at both sizes. Only the picture and styles changed.
+
+**Not done:** the sign choice is mine to make; the finished-download moment.

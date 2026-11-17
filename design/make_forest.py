@@ -6,7 +6,8 @@ Out:  ui/src/art/forest.png
 The picture is original and made entirely by this script, so it can be changed by
 changing numbers here. It repeats seamlessly left to right, and its top row is one
 flat colour, so the window can show it at a fixed size on any screen:
-3 screen pixels per art pixel, pinned to the bottom, repeated sideways.
+3 screen pixels per art pixel, pinned to the bottom, repeated sideways. At that size it
+is 2160 screen pixels tall, enough for a maximised window on a 4K screen.
 
 Only the standard library is used; no image library is needed.
 """
@@ -18,7 +19,9 @@ import sys
 import zlib
 from pathlib import Path
 
-W, H = 640, 400
+W, H = 640, 400    # the scene: everything is drawn in these coordinates
+TOTAL = 720        # the saved picture is taller: the big trunks carry on upward, for a maximised window
+LIFT = TOTAL - H   # how far the scene sits below the picture's top
 FERN_BASE = 394   # the front ferns stand a little above the bottom edge, which the status bar covers
 
 COLOURS = {
@@ -29,6 +32,7 @@ COLOURS = {
     "mid": "#0b4f31", "mid_lit": "#10603b", "mid_dark": "#083f27",
     "near": "#06361f", "near_lit": "#0c4f2c", "near_dark": "#03200f",
     # bark, light to dark
+    "fbark0": "#5f5f3c", "fbark1": "#4d4a30", "fbark2": "#3c3a28", "fbark3": "#2c2b1f",   # the same, far away
     "bark0": "#a2683c", "bark1": "#7d4a2a", "bark2": "#5c3520", "bark3": "#3d2216", "bark4": "#27140c",
     # ground
     "grass": "#0a4428", "grass_lit": "#1d7a45", "grass_dark": "#062f1b", "fern": "#031c10",
@@ -40,12 +44,13 @@ NAMES = list(COLOURS)
 INDEX = {name: number for number, name in enumerate(NAMES)}
 BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 
-image = [[INDEX["sky0"]] * W for _ in range(H)]
+image = [[INDEX["sky0"]] * W for _ in range(TOTAL)]
 rng = random.Random(11)
 
 
 def put(x: int, y: int, colour: str) -> None:
-    if 0 <= y < H:
+    y += LIFT
+    if 0 <= y < TOTAL:
         image[y][x % W] = INDEX[colour]   # x wraps, which is what makes the picture repeat
 
 
@@ -143,35 +148,64 @@ def ground() -> None:
             put(x, top - 1, "grass_lit" if rng.random() < 0.5 else "grass")
 
 
-def giant(cx: int, width: int) -> None:
-    """One of the big trees: only its trunk is in the picture, its crown is above it."""
-    ladder = ["bark0", "bark1", "bark2", "bark3", "bark4"]
-    base = ground_line(cx) + 10
+BARK = ["bark0", "bark1", "bark2", "bark3", "bark4"]
+FAR_BARK = ["fbark0", "fbark1", "fbark2", "fbark3", "fbark3"]
+
+
+def giant(cx: int, width: int, ladder: list[str] = BARK, base: int | None = None,
+          root_rows: int = 44, root_reach: int = 17) -> None:
+    """One of the big trees: only its trunk is in the picture, its crown is above it.
+
+    The trunk runs to the very top of the picture and thins out into the dark there,
+    so it never ends in a straight cut however tall the window is.
+    """
+    front = base is None
+    if front:
+        base = ground_line(cx) + 11
     furrows: dict[int, set[int]] = {}
-    for column in range(-width, width + 1):       # cracks in the bark: broken vertical lines
+    for column in range(-width - root_reach, width + root_reach + 1):   # cracks in the bark: broken vertical lines
         rows: set[int] = set()
         if rng.random() < 0.45:
-            y = rng.randint(-20, 20)
+            y = -LIFT - rng.randint(0, 30)
             while y < H:
                 length = rng.randint(8, 34)
                 rows.update(range(y, y + length))
                 y += length + rng.randint(5, 22)
         furrows[column] = rows
-    for y in range(base):
-        flare = max(0, y - (base - 30)) / 30      # the trunk widens into roots at the bottom
-        extra = int(flare ** 2 * 12)
+    fade_until = -LIFT + 110
+    for y in range(-LIFT, base):
+        flare = max(0, y - (base - root_rows)) / root_rows   # the trunk sweeps out into roots at the bottom
+        extra = int(flare ** 2.6 * root_reach)
         lean = int(1.6 * math.sin(y / 27 + cx))
         left, right = cx - width // 2 - extra + lean, cx + width // 2 + extra + lean
         for x in range(left, right + 1):
+            if y < fade_until and dithered(x, y, (fade_until - y) / 110):
+                continue                                      # lost in the dark of the canopy
+            if front and y > base - 2 - int(2.6 * (1 + math.sin(x * 0.8 + cx))):
+                continue                                      # root toes: the bottom edge is scalloped, not straight
             share = (x - left) / (right - left)
             step = 0 if share < 0.07 else 1 if share < 0.3 else 2 if share < 0.68 else 3
             column = x - lean - cx
             if y in furrows.get(column, ()):
                 step += 1
             elif y in furrows.get(column - 1, ()) and share < 0.68:
-                step -= 1                         # the lit edge beside a crack
+                step -= 1                                     # the lit edge beside a crack
+            if front and y > base - 5:
+                step += 1                                     # the foot stands in its own shade
             put(x, y, ladder[max(0, min(4, step))])
-
+    if not front:
+        return
+    reach = width // 2 + root_reach
+    for x in range(cx - reach - 6, cx + reach + 30):          # shade on the ground, falling to the right
+        away = (x - cx) / (reach + 30)
+        for y in range(base - 3, base + 4):
+            if dithered(x, y, 0.75 - abs(away) * 0.5) and image[y + LIFT][x % W] in (INDEX["grass"], INDEX["grass_lit"]):
+                put(x, y, "grass_dark")
+    for x in range(cx - reach - 3, cx + reach + 4):           # grass growing up in front of the roots
+        if rng.random() < 0.6:
+            top = base - rng.randint(1, 5)
+            for y in range(top, base + 1):
+                put(x, y, "grass_lit" if y == top and rng.random() < 0.6 else "grass")
 
 def foxglove(x: int, height: int) -> None:
     base = ground_line(x) + rng.randint(2, 8)
@@ -226,7 +260,7 @@ def save(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(
         b"\x89PNG\r\n\x1a\n"
-        + chunk(b"IHDR", struct.pack(">IIBBBBB", W, H, 8, 3, 0, 0, 0))
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", W, TOTAL, 8, 3, 0, 0, 0))
         + chunk(b"PLTE", palette)
         + chunk(b"IDAT", zlib.compress(rows, 9))
         + chunk(b"IEND", b"")
@@ -237,9 +271,12 @@ def main() -> None:
     backdrop()
     row_of_pines(352, (55, 115), (9, 17), 25, ("far", "far", "far_lit"), 0, 0.08)
     mist(318, 356, "glow", 0.7)
-    row_of_pines(358, (120, 195), (28, 46), 41, ("mid_dark", "mid", "mid_lit"), 4, 0.14)
+    for cx, width in ((34, 28), (166, 34), (240, 24), (402, 32), (462, 24), (584, 30)):   # thick trunks, far off
+        giant(cx, width, FAR_BARK, 366, 16, 4)
+    mist(300, 362, "sky3", 0.5)
+    row_of_pines(358, (120, 195), (28, 46), 41, ("mid_dark", "mid", "mid_lit"), 7, 0.14)
     mist(336, 362, "sky3", 0.45)
-    row_of_pines(366, (215, 330), (58, 96), 46, ("near_dark", "near", "near_lit"), 6, 0.2)
+    row_of_pines(366, (215, 330), (58, 96), 46, ("near_dark", "near", "near_lit"), 10, 0.2)
     ground()
     for cx, width in ((92, 40), (318, 48), (505, 36)):
         giant(cx, width)

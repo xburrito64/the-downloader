@@ -121,7 +121,7 @@
      It has its own layer so that "pixelated" applies to it alone and not to cover pictures. */
   .forest {
     position: absolute; inset: 0; z-index: -1; pointer-events: none;
-    background: url("./art/forest.png") repeat-x center bottom / 1920px 1200px; image-rendering: pixelated;
+    background: url("./art/forest.png") repeat-x center bottom / 1920px 2160px; image-rendering: pixelated;
   }
   .window::after { /* still scanlines: an overlay, never an animation */
     content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 5;

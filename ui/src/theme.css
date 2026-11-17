@@ -26,6 +26,7 @@
   --panel-glass: rgba(10, 74, 44, .9);  /* title bar, rail and status bar: the forest shows through faintly */
   --veil: rgba(6, 52, 32, .8);          /* over the forest behind a screen, so text stays readable */
   --veil-thin: rgba(6, 52, 32, .15);    /* the same on an empty screen, where the forest is the picture */
+  --grass: #1d7a45;                     /* tufts at the foot of a sign, the picture's own grass colour */
   --wood: #5c3520; --wood-lit: #7d4a2a; --wood-dark: #27140c;  /* signs */
 
   --font-display: "Jersey 15", "Courier New", monospace;
