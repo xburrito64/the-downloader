@@ -1444,3 +1444,10 @@ My wish (the owner): a button that clears my entire Queue, really everything at 
 - **Clear finished** stays as it was: it takes away only what went well.
 - New engine route `POST /api/queue/cancel-all`. The window ignores the late "stopped" news for rows already cleared, so they do not come back (caught while testing: two rows reappeared at first).
 - **Tested:** in the window with a separate test engine: 2 running and 4 waiting, Clear all asked once, then the Queue was empty and the engine had nothing left. In code: 5 jobs, one of them paused, were all stopped. The queue and API checks still pass.
+
+### Nov 17, 2026: Release 1.1.0
+
+My wish (the owner): record everything, push, and make a new small release.
+
+- Everything since 1.0.0 was already recorded above and pushed.
+- The version is now 1.1.0 (`pyproject.toml`, `ui/package.json` and both lock files), tagged `v1.1.0`, and published on GitHub as "THE Downloader 1.1" with notes on what changed: failed downloads that stay findable, Try all again, Clear all, Spotify songs falling back to another recording, the queue pausing when YouTube blocks downloads, and the optional YouTube login.
