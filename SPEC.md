@@ -1499,3 +1499,11 @@ Untrusted results are no longer cut to one number in Other match (every one said
 - 14 checks against the real YouTube Music: the a cappella video and a series-named video are no longer trusted, "Artist - Song" videos are understood, a cover word in Japanese is caught, links are read, and a dead link gives nothing.
 - 40 real Spotify songs (pop, rock, live, remixes, many Japanese titles). 38 got a trusted match, every one of them the right artist and within 2 seconds. Ado's "Usseewa" had gone to a drums backing track and Fujii Kaze's "Shinunoga E-Wa" to a re-upload with subtitles; both now go to the official songs. The 2 refused are a live album that YouTube Music cannot play and a "Clair de Lune" by an unknown pianist; both wait for a hand pick, with the closest listed first.
 - In the window with a separate test engine: Other match lists 無職転生 at 100% first; a typed search and a pasted music.youtube.com link both work. The fallback, login and store checks pass.
+
+### Nov 17, 2026: The maximise button shows the state, and release 1.1.2
+
+My wish (the owner): the middle window button should look different when the window fills the screen; it was always one square. After that, push everything and make a new release.
+
+- When the window fills the screen, the middle button now shows two overlapping squares and is named "Restore"; otherwise one square, "Maximise". Hovering shows the name. The app already knew which state it was in; only the picture never changed.
+- **Tested** in the browser view with a stand-in for the window: the button switches to the two squares and back. Drawn at 5 times the size to check that the shape reads well.
+- The version is now 1.1.2 (`pyproject.toml`, `ui/package.json` and both lock files), tagged `v1.1.2`, and published on GitHub as "THE Downloader 1.1.2": the careful matching, searching or pasting a link in Other match, and this button.

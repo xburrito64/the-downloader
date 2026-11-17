@@ -140,7 +140,14 @@
     {#if inWindow}
       <div class="winkeys">
         <button aria-label="Minimise" onclick={() => windowApi()?.minimize()}><svg viewBox="0 0 12 12"><path d="M2 8h8v2H2z"/></svg></button>
-        <button aria-label={maximized ? "Restore" : "Maximise"} onclick={toggleMaximize}><svg viewBox="0 0 12 12"><path fill-rule="evenodd" d="M2 2h8v8H2zM4 4v4h4V4z"/></svg></button>
+        <button aria-label={maximized ? "Restore" : "Maximise"} title={maximized ? "Restore" : "Maximise"} onclick={toggleMaximize}>
+          <!-- One square: make it fill the screen. Two overlapping squares: go back to the size before. -->
+          {#if maximized}
+            <svg viewBox="0 0 12 12"><path fill-rule="evenodd" d="M1.5 4.5h6v6h-6zM3 6v3h3V6zM4.5 1.5h6v6H9V3H4.5z"/></svg>
+          {:else}
+            <svg viewBox="0 0 12 12"><path fill-rule="evenodd" d="M2 2h8v8H2zM4 4v4h4V4z"/></svg>
+          {/if}
+        </button>
         <button class="close" aria-label="Close" onclick={() => windowApi()?.close()}><svg viewBox="0 0 12 12"><path d="M2 3.5 3.5 2 6 4.5 8.500 2 10 3.5 7.500 6 10 8.500 8.500 10 6 7.500 3.5 10 2 8.500 4.5 6z"/></svg></button>
       </div>
     {/if}
