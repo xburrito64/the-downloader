@@ -6,7 +6,8 @@
 
   const PAGE = 60;
   let search = $state("");
-  let onlyFailed = $state(false);   // "Didn't download": only the ones that failed
+  let onlyFailed = $state(false);   // "Only these": only the ones that didn't download
+  let failed = $state(0);           // how many in the whole Library didn't download
   let entries = $state([]);
   let complete = $state(false);   // true once the last page has been loaded
   let loading = false;
@@ -27,6 +28,17 @@
     complete = page.length < PAGE;
   }
 
+  // The notice counts the whole Library, not only the part loaded so far.
+  async function countFailed() {
+    const answer = await api.failedCount().catch(() => null);
+    if (answer) failed = answer.count;
+  }
+  $effect(() => {
+    app.historyVersion;
+    countFailed();
+  });
+  $effect(() => { if (!failed) onlyFailed = false; });
+
   // Reload when the search text settles, and whenever a download finishes.
   let timer = 0;
   $effect(() => {
@@ -41,18 +53,25 @@
   async function forget(job) {
     const done = await attempt(() => api.forget(job.id));
     if (done) entries = entries.filter((entry) => entry.id !== job.id);
+    if (done && job.status === "failed") countFailed();
   }
 </script>
 
 <div class="screen" class:open={loaded && !entries.length}>
   <div class="head">
     <h1>Library</h1>
-    <span class="seg" role="group" aria-label="Which downloads to show">
-      <button aria-pressed={!onlyFailed} onclick={() => (onlyFailed = false)}>All</button>
-      <button aria-pressed={onlyFailed} onclick={() => (onlyFailed = true)}>Didn't download</button>
-    </span>
     <input class="well find" type="search" placeholder="Search title or artist" aria-label="Search the library" spellcheck="false" bind:value={search}>
   </div>
+
+  {#if failed}
+    <div class="problems" role="status">
+      <b>{failed === 1 ? "1 didn't download" : `${failed} didn't download`}</b>
+      <span class="seg" role="group" aria-label="Which downloads to show">
+        <button aria-pressed={!onlyFailed} onclick={() => (onlyFailed = false)}>All</button>
+        <button aria-pressed={onlyFailed} onclick={() => (onlyFailed = true)}>Only these</button>
+      </span>
+    </div>
+  {/if}
 
   {#if entries.length}
     <VirtualGrid items={entries} itemHeight={84} gap={10} onnearend={() => load(false)}>
@@ -62,12 +81,10 @@
     </VirtualGrid>
   {:else if loaded}
     <p class="empty">
-      {#if onlyFailed && !search.trim()}
-        <strong>Nothing failed.</strong>
-        Every download in the Library made it.
-      {:else if search.trim()}
+      {#if search.trim()}
         <strong>Nothing matches.</strong>
-        No download has "{search.trim()}" in its title or artist.
+        {onlyFailed ? `None of the ones that didn't download has "${search.trim()}" in its title or artist.`
+          : `No download has "${search.trim()}" in its title or artist.`}
       {:else}
         <strong>Nothing here yet.</strong>
         Everything you download is listed here, newest first.
@@ -78,4 +95,8 @@
 
 <style>
   .find { width: 300px; }
+  /* The same notice as in the Queue, for everything in the Library. */
+  .problems { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-right: 10px; padding: 8px 10px 8px 16px;
+    background: var(--edge); border-radius: var(--r-m); box-shadow: inset 4px 0 0 var(--rose); }
+  .problems b { color: var(--rose); font: 400 24px/1 var(--font-display); margin-right: auto; }
 </style>

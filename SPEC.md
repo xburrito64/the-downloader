@@ -1527,3 +1527,12 @@ My wish (the owner): a song is on Spotify but nowhere on YouTube. It is on Sound
 - Downloaded and tagged for real in both formats: "original" gave a 160 kbps .m4a, "mp3" a 192 kbps .mp3, both 3:34 with all tags.
 - In the window with a separate test engine: pasting the link shows "Reading the SoundCloud link", then the track with its picture and the SoundCloud label. The earlier matching checks still pass.
 - Not tried: a preview-only track and a real short link (none at hand). The preview check uses the marks yt-dlp itself puts on preview streams.
+
+### Nov 17, 2026: The "didn't download" notice in the Library too
+
+My wish (the owner): after restarting the app, the songs that still need a match are only in the Library. The Queue's notice with how many didn't download, and the quick way to show only those, should be there too.
+
+- The Library now shows the same notice at the top whenever any download in it didn't download: "7 didn't download", with **All** and **Only these**. It counts the whole Library, not only the part loaded so far, and updates when a download finishes or an entry is removed. With nothing failed, the notice is gone.
+- The "All / Didn't download" switch at the top of the Library moved into this notice, so there is one switch instead of two. A search still works inside "Only these".
+- The engine has a small new address for the count: `GET /api/history/failed`.
+- **Tested** in the window with a separate test engine: the notice reads "1 didn't download" over the 無職転生 test row, and Only these shows just that row.

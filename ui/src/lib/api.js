@@ -51,6 +51,7 @@ export const api = {
   updateStart: () => call("POST", "/api/update"),
   history: (search, offset, limit, onlyFailed = false) =>
     call("GET", `/api/history?search=${encodeURIComponent(search)}&offset=${offset}&limit=${limit}${onlyFailed ? "&only=failed" : ""}`),
+  failedCount: () => call("GET", "/api/history/failed"),
   testYoutubeLogin: () => call("POST", "/api/youtube-login/test"),
   forget: (id) => call("DELETE", `/api/history/${id}`),
 };

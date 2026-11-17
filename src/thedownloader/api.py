@@ -512,6 +512,10 @@ def create_app(state: AppState) -> Starlette:
         jobs = state.store.list(statuses, search=search, limit=limit, offset=offset, newest_first=True)
         return [job.summary() for job in jobs]
 
+    def failed_count(_request: Request, _body: dict):
+        """How many downloads in the Library didn't download, for the notice at its top."""
+        return {"count": state.store.count(("failed",))}
+
     def forget(request: Request, _body: dict):
         """Remove an entry from the history. The downloaded file is not touched."""
         job = state.store.get(request.path_params["job_id"])
@@ -605,6 +609,7 @@ def create_app(state: AppState) -> Starlette:
         route("/api/youtube-login/test", "POST", youtube_login_test),
         route("/api/update", "POST", update_start),
         route("/api/history", "GET", history),
+        route("/api/history/failed", "GET", failed_count),
         route("/api/history/{job_id:int}", "DELETE", forget),
         Route("/api/events", events, methods=["GET"]),
         Route("/api/cover", cover, methods=["GET"]),
