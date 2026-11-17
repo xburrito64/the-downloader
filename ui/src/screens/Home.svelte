@@ -139,7 +139,7 @@
             onclick={() => (picked[item.index] = !picked[item.index])} onpointermove={tilt} onpointerleave={settle}>
             <Cover url={item.cover_url} label={item.title} wide={canVideo} />
             <h4 title={item.title}>{item.title}</h4>
-            <p>{item.artist || "ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â "}</p>
+            <p>{item.artist || " "}</p>
             <span class="foot">
               <span>{item.already === "downloaded" ? "Have it" : item.already === "in queue" ? "In queue" : duration(item.duration_seconds)}</span>
               <i class="tick"></i>

@@ -161,7 +161,7 @@
   .titlebar h2 { font: 400 26px/1 var(--font-display); letter-spacing: .5px; flex: 1; pointer-events: none; }
   .puff { position: relative; flex: none; width: 32px; height: 26px; pointer-events: none; }
   .mascot { position: absolute; left: 0; bottom: -2px; width: 32px; height: 32px; image-rendering: pixelated; transform-origin: bottom; }
-  .mascot:global(.hop) { animation: hop 520ms steps(6); }
+  .mascot:global(.hop) { animation: hop 520ms ease-out; }
   @keyframes hop { 30% { transform: translateY(-8px) scaleY(1.08); } 60% { transform: scaleY(.88); } 78% { transform: translateY(-3px); } }
   .puff i { position: absolute; left: 14px; top: 8px; width: 4px; height: 4px; background: var(--accent); z-index: 7; animation: spore 760ms steps(8) 120ms both; }
   .puff i.pale { background: var(--ink); }
@@ -172,8 +172,9 @@
   .veil { position: absolute; inset: 0; background: var(--veil); transition: background-color var(--settle); }
   main:has(> :global(.screen.open)) .veil { background: linear-gradient(to bottom, var(--veil), var(--veil-thin) 70%); }
   .floor { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-  .sprout { position: absolute; width: 32px; height: 32px; margin-left: -16px; image-rendering: pixelated; transform-origin: bottom; animation: sprout 640ms steps(1) both; }
-  @keyframes sprout { 0% { transform: scaleY(0); } 20% { transform: scaleY(.25); } 40% { transform: scaleY(.6); } 60% { transform: scaleY(1.15) scaleX(.9); } 80% { transform: scaleY(.92) scaleX(1.06); } 100% { transform: none; } }
+  .sprout { position: absolute; width: 32px; height: 32px; margin-left: -16px; image-rendering: pixelated; transform-origin: bottom; animation: sprout 560ms ease-out both; }
+  /* smooth, not in steps: stepped growth looked like a low frame rate (owner feedback, Nov 17, 2026) */
+  @keyframes sprout { 0% { transform: scaleY(0); } 55% { transform: scaleY(1.15) scaleX(.9); } 78% { transform: scaleY(.94) scaleX(1.05); } 100% { transform: none; } }
   .winkeys { display: flex; gap: 8px; }
   .winkeys button {
     width: 34px; height: 24px; border: 0; border-radius: 6px; background: var(--raised); color: var(--ink); cursor: pointer;
