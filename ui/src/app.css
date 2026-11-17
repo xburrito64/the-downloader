@@ -53,39 +53,23 @@ input { user-select: text; }
 .head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-right: 10px; }
 .head h1 { font: 400 40px/1 var(--font-display); letter-spacing: .5px; margin-right: auto; }
 .head .sub { color: var(--ink-soft); }
-/* An empty screen says so on a wooden sign that stands on the forest floor, and lets the forest show.
-   Everything is drawn in 3-pixel steps with hard edges, like the forest picture behind it.
-   Three shapes are kept while one is being chosen (milestone 8): two posts (the default),
-   one post (.one-post on <html>), and a board lying on the ground (.on-ground on <html>). */
+/* An empty screen says so on a wooden sign on one post, standing on the forest floor, and lets the forest show.
+   Everything is drawn in 3-pixel steps with hard edges, like the forest picture behind it. */
 .empty {
-  --post: linear-gradient(to right, var(--wood-lit) 0 6px, var(--wood) 6px 15px, var(--wood-dark) 15px 21px);
+  --post: linear-gradient(to right, var(--wood-lit) 0 6px, var(--wood) 6px 21px, var(--wood-dark) 21px 30px);
   --tuft: linear-gradient(var(--grass), var(--grass));
   align-self: flex-start; position: relative; max-width: 46ch; margin: auto 0 80px 9px; padding: 15px 21px 18px; color: var(--ink);
   background: repeating-linear-gradient(to bottom, var(--wood) 0 30px, var(--wood-dark) 30px 33px);   /* planks */
   box-shadow: 0 0 0 3px var(--wood-dark), inset 0 3px 0 var(--wood-lit), inset 3px 0 0 var(--wood-lit), inset 0 -3px 0 var(--wood-dark), inset -3px 0 0 var(--wood-dark);
 }
 .empty strong { display: block; font: 400 30px/1.1 var(--font-display); margin-bottom: 4px; }
-/* the posts, and tufts of grass around the foot of each */
+/* the post, and tufts of grass around its foot */
 .empty::after {
   content: ""; position: absolute; top: calc(100% + 3px); left: 0; right: 0; height: 54px;
-  background:
-    var(--tuft) 27px 100% / 3px 9px, var(--tuft) 33px 100% / 3px 15px, var(--tuft) 39px 100% / 3px 6px, var(--tuft) 51px 100% / 3px 12px, var(--tuft) 60px 100% / 3px 6px,
-    var(--tuft) calc(100% - 27px) 100% / 3px 6px, var(--tuft) calc(100% - 36px) 100% / 3px 15px, var(--tuft) calc(100% - 45px) 100% / 3px 9px, var(--tuft) calc(100% - 60px) 100% / 3px 12px,
-    var(--post) 36px 0 / 21px 100%, var(--post) calc(100% - 36px) 0 / 21px 100%;
-  background-repeat: no-repeat;
-}
-.one-post .empty::after {
   background:
     var(--tuft) calc(50% - 21px) 100% / 3px 9px, var(--tuft) calc(50% - 15px) 100% / 3px 15px, var(--tuft) calc(50% - 6px) 100% / 3px 6px,
     var(--tuft) calc(50% + 9px) 100% / 3px 12px, var(--tuft) calc(50% + 18px) 100% / 3px 6px, var(--tuft) calc(50% + 24px) 100% / 3px 12px,
     var(--post) 50% 0 / 30px 100%;
-  background-repeat: no-repeat;
-}
-.on-ground .empty { margin-bottom: 36px; }
-.on-ground .empty::after {
-  top: calc(100% - 12px); height: 15px; left: -9px; right: -9px;
-  background: repeating-linear-gradient(to right, var(--grass) 0 3px, transparent 3px 9px, var(--grass) 9px 12px, transparent 12px 15px, var(--grass) 15px 18px, transparent 18px 30px) 0 100% / 100% 9px,
-    repeating-linear-gradient(to right, transparent 0 15px, var(--grass) 15px 18px, transparent 18px 42px) 0 100% / 100% 15px;
   background-repeat: no-repeat;
 }.problem { color: var(--rose); font-weight: 700; }
 

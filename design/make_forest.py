@@ -75,8 +75,8 @@ def backdrop() -> None:
 
 
 def mist(top: int, bottom: int, colour: str, strength: float) -> None:
-    for y in range(top, bottom):
-        amount = strength * (y - top) / (bottom - top)
+    for y in range(top, 390):   # past bottom it stays at full strength, down under the ground
+        amount = strength * min(1.0, (y - top) / (bottom - top))
         for x in range(W):
             if dithered(x, y, amount):
                 put(x, y, colour)
@@ -91,13 +91,14 @@ def pine(cx: int, base: int, height: int, spread: float, shades: tuple[str, str,
     rows = foliage_bottom - top
     tiers = max(4, rows // 13)
     # the trunk first, so the boughs cover its upper part
-    for y in range(top + rows // 3, base + 2):
+    reach = max(base + 2, ground_line(cx) + 8)   # always down into the ground, which is drawn over it
+    for y in range(top + rows // 3, reach):
         for dx in range(trunk_width):
             x = cx - trunk_width // 2 + dx
             share = dx / max(1, trunk_width - 1)
             put(x, y, "bark1" if share < 0.3 else "bark2" if share < 0.7 else "bark3")
     if trunk_width == 0:
-        for y in range(foliage_bottom, base + 2):
+        for y in range(foliage_bottom, reach):
             put(cx, y, dark)
     for y in range(top, foliage_bottom):
         along = (y - top) / rows
@@ -157,11 +158,20 @@ def giant(cx: int, width: int, ladder: list[str] = BARK, base: int | None = None
     """One of the big trees: only its trunk is in the picture, its crown is above it.
 
     The trunk runs to the very top of the picture and thins out into the dark there,
-    so it never ends in a straight cut however tall the window is.
+    so it never ends in a straight cut however tall the window is. At the bottom it
+    sweeps out into roots that follow the ground's own curve, so it stands on the
+    ground instead of being laid over it.
     """
     front = base is None
     if front:
-        base = ground_line(cx) + 11
+        base = ground_line(cx) + 3
+
+    def bottom(x: int) -> int:
+        """The lowest row of bark in column x: just below the grass line there, a little uneven."""
+        if not front:
+            return base
+        return ground_line(x) + 2 + int(1.5 * (1 + math.sin(x * 0.9 + cx)))
+
     furrows: dict[int, set[int]] = {}
     for column in range(-width - root_reach, width + root_reach + 1):   # cracks in the bark: broken vertical lines
         rows: set[int] = set()
@@ -173,16 +183,16 @@ def giant(cx: int, width: int, ladder: list[str] = BARK, base: int | None = None
                 y += length + rng.randint(5, 22)
         furrows[column] = rows
     fade_until = -LIFT + 110
-    for y in range(-LIFT, base):
-        flare = max(0, y - (base - root_rows)) / root_rows   # the trunk sweeps out into roots at the bottom
+    for y in range(-LIFT, base + 8):
+        flare = min(1.0, max(0, y - (base - root_rows)) / root_rows)   # the trunk sweeps out into roots at the bottom
         extra = int(flare ** 2.6 * root_reach)
-        lean = int(1.6 * math.sin(y / 27 + cx))
+        lean = int(1.6 * math.sin(min(y, base) / 27 + cx))
         left, right = cx - width // 2 - extra + lean, cx + width // 2 + extra + lean
         for x in range(left, right + 1):
+            if y > bottom(x):
+                continue
             if y < fade_until and dithered(x, y, (fade_until - y) / 110):
                 continue                                      # lost in the dark of the canopy
-            if front and y > base - 2 - int(2.6 * (1 + math.sin(x * 0.8 + cx))):
-                continue                                      # root toes: the bottom edge is scalloped, not straight
             share = (x - left) / (right - left)
             step = 0 if share < 0.07 else 1 if share < 0.3 else 2 if share < 0.68 else 3
             column = x - lean - cx
@@ -190,22 +200,34 @@ def giant(cx: int, width: int, ladder: list[str] = BARK, base: int | None = None
                 step += 1
             elif y in furrows.get(column - 1, ()) and share < 0.68:
                 step -= 1                                     # the lit edge beside a crack
-            if front and y > base - 5:
+            if front and y > bottom(x) - 3:
                 step += 1                                     # the foot stands in its own shade
             put(x, y, ladder[max(0, min(4, step))])
     if not front:
         return
-    reach = width // 2 + root_reach
-    for x in range(cx - reach - 6, cx + reach + 30):          # shade on the ground, falling to the right
-        away = (x - cx) / (reach + 30)
-        for y in range(base - 3, base + 4):
-            if dithered(x, y, 0.75 - abs(away) * 0.5) and image[y + LIFT][x % W] in (INDEX["grass"], INDEX["grass_lit"]):
+    spread = width // 2 + root_reach
+    for side in (-1, 1):                                      # roots running out over the ground, thinning as they go
+        for number in range(2):
+            start = cx + side * (spread - 4 - number * 9)
+            length = rng.randint(9, 16) - number * 3
+            for step in range(length):
+                x = start + side * step
+                thick = max(1, round(3 * (1 - step / length)))
+                surface = ground_line(x) + 2
+                for y in range(surface - thick, surface + 1):
+                    colour = "bark3" if y == surface else "bark1" if (y == surface - thick and side < 0) else "bark2"
+                    put(x, y, colour)
+    for x in range(cx + spread - 6, cx + spread + 34):        # soft shade on the grass, falling to the right
+        fade = 0.5 * (1 - (x - cx - spread + 6) / 40)
+        for y in range(ground_line(x) + 1, ground_line(x) + 6):
+            if dithered(x, y, fade) and image[y + LIFT][x % W] in (INDEX["grass"], INDEX["grass_lit"]):
                 put(x, y, "grass_dark")
-    for x in range(cx - reach - 3, cx + reach + 4):           # grass growing up in front of the roots
-        if rng.random() < 0.6:
-            top = base - rng.randint(1, 5)
-            for y in range(top, base + 1):
-                put(x, y, "grass_lit" if y == top and rng.random() < 0.6 else "grass")
+    for x in range(cx - spread - 18, cx + spread + 18):       # a few blades of grass in front of the foot
+        if rng.random() < 0.35:
+            foot = bottom(x)
+            height = rng.randint(1, 3)
+            for y in range(foot - height, foot + 1):
+                put(x, y, "grass_lit" if y == foot - height else "grass")
 
 def foxglove(x: int, height: int) -> None:
     base = ground_line(x) + rng.randint(2, 8)
@@ -272,7 +294,7 @@ def main() -> None:
     row_of_pines(352, (55, 115), (9, 17), 25, ("far", "far", "far_lit"), 0, 0.08)
     mist(318, 356, "glow", 0.7)
     for cx, width in ((34, 28), (166, 34), (240, 24), (402, 32), (462, 24), (584, 30)):   # thick trunks, far off
-        giant(cx, width, FAR_BARK, 366, 16, 4)
+        giant(cx, width, FAR_BARK, ground_line(cx) + 8, 16, 4)
     mist(300, 362, "sky3", 0.5)
     row_of_pines(358, (120, 195), (28, 46), 41, ("mid_dark", "mid", "mid_lit"), 7, 0.14)
     mist(336, 362, "sky3", 0.45)
