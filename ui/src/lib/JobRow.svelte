@@ -2,7 +2,7 @@
   // One download as a row: cover, names, what is happening, and its buttons. Used by Queue and Library.
   import Cover from "./Cover.svelte";
   import { api } from "./api.js";
-  import { attempt, notify, progress, putJob } from "./state.svelte.js";
+  import { attempt, notify, progress } from "./state.svelte.js";
   import { speed } from "./format.js";
 
   let { job, onforget = null } = $props();
@@ -20,21 +20,21 @@
       case "skipped": return "Skipped";
       case "failed": return job.error || "Failed";
       default: {
-        if (!live) return "Starting";
+        if (!live || live.stage === "waiting") return "Starting";
         const rate = speed(live.speed);
         return `${stages[live.stage] ?? "Working"} ${Math.round(live.fraction * 100)}%${rate ? `, ${rate}` : ""}`;
       }
     }
   });
 
-  async function act(action) {
-    const updated = await attempt(() => api.job(job.id, action));
-    if (updated && action !== "reveal") putJob(updated);
+  // The answer to a button press is not used to update the row: the engine announces every
+  // change as a live update, and an answer can arrive after a newer update and undo it.
+  function act(action) {
+    return attempt(() => api.job(job.id, action));
   }
 
   async function retry() {
-    await act("retry");
-    notify("Trying again. It is back in the queue.");
+    if (await act("retry")) notify("Trying again. It is back in the queue.");
   }
 </script>
 

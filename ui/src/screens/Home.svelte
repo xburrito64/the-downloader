@@ -1,6 +1,6 @@
 <script>
   import { api } from "../lib/api.js";
-  import { app, attempt, notify, putJob } from "../lib/state.svelte.js";
+  import { addJob, app, attempt, notify } from "../lib/state.svelte.js";
   import { duration, plural } from "../lib/format.js";
   import Cover from "../lib/Cover.svelte";
   import VirtualGrid from "../lib/VirtualGrid.svelte";
@@ -40,7 +40,8 @@
       if (result.provider === "spotify") mode = "audio";
       dealt = false;
       dealing = true;
-      requestAnimationFrame(() => requestAnimationFrame(() => (dealt = true)));
+      // A timer, not an animation frame: frames stop while the window is minimised, and the cards must still appear.
+      setTimeout(() => (dealt = true), 40);
       setTimeout(() => (dealing = false), 1000);
     } catch (error) {
       found = null;
@@ -75,7 +76,7 @@
     }));
     adding = false;
     if (!result) return;
-    for (const job of result.jobs) if (job.result === "queued") putJob(job);
+    for (const job of result.jobs) if (job.result === "queued") addJob(job);
     app.settings.mode = canVideo ? mode : app.settings.mode;
     app.settings.audio_format = audioFormat;
     app.settings.video_quality = videoQuality;

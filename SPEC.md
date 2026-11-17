@@ -206,7 +206,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 4 | Core queue | Done, Nov 16, 2026 |
 | 5 | API | Done, Nov 16, 2026 |
 | 6 | Design concept | Direction approved Nov 16, 2026. Accent: Foxglove for now. Green rebuilt from a reference image, waiting for a yes |
-| 7 | UI v1 in its window | In progress: screens work in a browser test, the real window is untested |
+| 7 | UI v1 in its window | Done (Nov 17, 2026). Not yet tried by hand in the real window |
 | 8 | Polish | Not started |
 | 9 | Repo hygiene | Not started (optional) |
 
@@ -916,7 +916,7 @@ So "more vibrant" meant two things: **less blue in the green, and nearly twice a
 
 - Whether this green is right now. (Answered in the next entry: no, the earlier deep green stays.)
 
-### Nov 16, 2026: Milestone 7, UI v1 (in progress, not finished)
+### Nov 16, 2026: Milestone 7, UI v1 (first half)
 
 **Decision by me**
 
@@ -942,9 +942,64 @@ So "more vibrant" meant two things: **less blue in the green, and nearly twice a
 - A real YouTube video was read, downloaded and went from Home through the Queue into the Library, with live updates.
 - A playlist of 208 videos: only 30 cards exist on screen at a time, covers load.
 
-**Not tested yet**
+### Nov 17, 2026: Milestone 7 finished
 
-- **The real window** (`uv run thedownloader app`) has never been opened: title bar buttons, dragging, the resize grip and the folder picker are all untried.
-- Spotify links, pause/resume/cancel, search, saving settings and Spotify login through the UI.
-- The 35 queue checks and 43 API checks were not re-run after the engine changes.
-- No memory or CPU measurements yet.
+**The real window, tested by a script that looks inside it**
+
+- Opens and shows the UI 1.5 to 3.5 seconds after launch. Both fonts load.
+- The window functions answer: minimise, maximise, close, resize, folder picker are all reachable from the UI.
+- The corner grip's resize works (1000 by 700 gave exactly that) and stops at the minimum size of 900 by 620.
+- Closing the window stops the engine cleanly.
+- The login token is removed from the window's address right after start.
+
+**Problems found and fixed**
+
+- **Maximise covered the taskbar.** That is what Windows does with a window that has no frame. The window is now moved and sized to the free area of its screen instead (2560 by 1392 on my screen, taskbar left visible).
+- **A download that started very fast kept showing "Waiting".** The answer to "add to queue" arrived after the live update "now running" and overwrote it. The UI now trusts live updates for every change and never lets an answer replace newer news. The same fix was made for the Pause, Resume, Cancel and Try again buttons.
+- **A resumed download showed its old speed** for a few seconds. It now shows "Starting" until new progress arrives.
+- **Cards could stay invisible** if a link was read while the window was minimised. Fixed.
+
+**Tested through the UI, against the real engine**
+
+- Pause, resume and cancel on a running download; "Try again" on a failed one (a real failure: YouTube dropped the connection on a 3-hour video, and the second try worked).
+- Something already downloaded is marked "Have it" and starts unpicked.
+- Library search, including a search with no results.
+- Settings: Save is only active after a change; a changed value is stored; a bad folder gives a clear message; the motion switch works.
+- A Spotify track link is read and its cover is shown. Video is not offered for Spotify.
+- The 35 queue checks and the 43 API checks still pass after the engine changes.
+
+**Measurements (Nov 17, 2026, app open and idle on Home)**
+
+| What | Value |
+| --- | --- |
+| Engine (Python) | 114 MB. It was 54 MB before the window library was added. |
+| Window (WebView2, 6 processes) | 336 MB |
+| Total | 456 MB |
+| CPU while idle, everything together | 0.125 s in 20 s, about 0.6% of one core |
+| UI files | 71 kB script, 13 kB styles, 56 kB fonts |
+| Covers on disk | about 19 kB each |
+
+- **The memory number is higher than I wanted.** Most of it is the window's browser engine, which every WebView2 app pays. The way it was counted also adds shared memory once per process, so the real cost is lower than 456 MB, but I have not measured by how much.
+- Reducing it is a job for milestone 8: measure it properly, try WebView2's memory-saving options, and check what the window library adds to the engine.
+
+**How to try it**
+
+- With a terminal: `uv run thedownloader app`
+- Without a terminal: double-click `.venv\Scripts\thedownloader-app.exe`
+- After changing anything in `ui/src`: `npm run build` inside the `ui` folder.
+
+**Not tested**
+
+- **Nobody has used the real window by hand yet.** Dragging it by the title bar, dragging the corner grip with the mouse, the folder picker and "Show file" were not tried by a person. My script can press buttons inside the window but cannot drag with a mouse.
+- Spotify login from the Settings screen (I am already logged in), and downloading a Spotify song through the UI. Both work from the terminal.
+- A screen with a scaling other than 100%.
+- Memory while downloading.
+
+**Known rough spots, for milestone 8**
+
+- A failed download shows yt-dlp's raw error text.
+- With some items unpicked, the button only says "Pick all"; picking none takes two presses.
+- YouTube covers are cut to a square.
+- The first status check after a restart of the PC can take more than a second.
+- Choosing a different YouTube match for a Spotify song is not in the UI.
+- Changing "downloads at the same time" needs a restart.

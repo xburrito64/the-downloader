@@ -13,6 +13,26 @@ _MIN_WIDTH, _MIN_HEIGHT = 900, 620
 _BACKGROUND = "#063420"  # shown for the moment before the UI has loaded; matches the screen colour
 
 
+def _work_area(x: int, y: int) -> tuple[int, int, int, int] | None:
+    """Left, top, width and height of the screen under a point, without the taskbar."""
+    import ctypes
+    from ctypes import wintypes
+
+    class MonitorInfo(ctypes.Structure):
+        _fields_ = [("size", wintypes.DWORD), ("monitor", wintypes.RECT), ("work", wintypes.RECT), ("flags", wintypes.DWORD)]
+
+    user32 = ctypes.windll.user32
+    user32.MonitorFromPoint.restype = wintypes.HANDLE
+    user32.GetMonitorInfoW.argtypes = [wintypes.HANDLE, ctypes.POINTER(MonitorInfo)]
+    monitor = user32.MonitorFromPoint(wintypes.POINT(x, y), 2)  # 2 = the nearest screen
+    info = MonitorInfo()
+    info.size = ctypes.sizeof(MonitorInfo)
+    if not monitor or not user32.GetMonitorInfoW(monitor, ctypes.byref(info)):
+        return None
+    work = info.work
+    return work.left, work.top, work.right - work.left, work.bottom - work.top
+
+
 class WindowApi:
     """The few things the UI cannot do itself, because they belong to Windows.
 
@@ -23,17 +43,32 @@ class WindowApi:
     def __init__(self) -> None:
         self._window = None
         self._maximized = False
+        self._before = (0, 0, _WIDTH, _HEIGHT)
 
     def minimize(self) -> None:
         self._window.minimize()
 
     def toggle_maximize(self) -> bool:
+        """Fill the screen, or go back to the size before.
+
+        Windows' own "maximise" makes a window without a frame cover the taskbar too,
+        so the window is moved and sized to the free area of its screen instead.
+        """
+        window = self._window
         if self._maximized:
-            self._window.restore()
-        else:
-            self._window.maximize()
-        self._maximized = not self._maximized
-        return self._maximized
+            x, y, width, height = self._before
+            window.resize(width, height)
+            window.move(x, y)
+            self._maximized = False
+            return False
+        area = _work_area(window.x + window.width // 2, window.y + window.height // 2)
+        if area is None:
+            return False
+        self._before = (window.x, window.y, window.width, window.height)
+        window.move(area[0], area[1])
+        window.resize(area[2], area[3])
+        self._maximized = True
+        return True
 
     def close(self) -> None:
         self._window.destroy()

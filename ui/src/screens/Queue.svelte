@@ -1,6 +1,6 @@
 <script>
   import { api } from "../lib/api.js";
-  import { ACTIVE, activeCount, app, attempt, clearFinished } from "../lib/state.svelte.js";
+  import { activeCount, app, attempt, clearFinished } from "../lib/state.svelte.js";
   import { plural } from "../lib/format.js";
   import JobRow from "../lib/JobRow.svelte";
   import VirtualGrid from "../lib/VirtualGrid.svelte";

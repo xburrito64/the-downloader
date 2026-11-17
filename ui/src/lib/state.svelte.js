@@ -44,10 +44,17 @@ export function putJob(job) {
   const before = index >= 0 ? app.jobs[index].status : "";
   if (index >= 0) app.jobs[index] = job;
   else app.jobs.push(job);
+  // A paused or waiting download keeps its bar but not its old speed.
+  if (job.status !== "running" && progress[job.id]) progress[job.id] = { ...progress[job.id], speed: 0, stage: "waiting" };
   if (!ACTIVE.includes(job.status)) {
     delete progress[job.id];
     if (before !== job.status && (job.status === "done" || job.status === "failed")) app.historyVersion++;
   }
+}
+
+/** Add a job the UI has not heard of yet. Never replaces one: a live update may already have newer news. */
+export function addJob(job) {
+  if (!app.jobs.some((existing) => existing.id === job.id)) app.jobs.push(job);
 }
 
 export function clearFinished() {
