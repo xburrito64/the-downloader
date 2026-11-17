@@ -157,9 +157,27 @@ class YouTubeProvider:
         # Only a real playlist link (no video ID in it) means "the whole playlist".
         options["noplaylist"] = kind == "video"
 
+        def read(extra: dict) -> dict:
+            with yt_dlp.YoutubeDL({**options, **extra}) as ydl:
+                return ydl.extract_info(link, download=False)
+
         try:
-            with yt_dlp.YoutubeDL(options) as ydl:
-                info = ydl.extract_info(link, download=False)
+            try:
+                info = read({})
+            except yt_dlp.utils.DownloadError as exc:
+                # Reading a link can hit YouTube's sign-in wall too, not only downloading it.
+                # Then the login from Settings is tried, just as for downloads.
+                raw = logger.last_error or str(exc)
+                login = self.login_options()
+                if not (login and _NEEDS_LOGIN.search(raw)):
+                    raise
+                logger.last_error = ""
+                try:
+                    info = read(login)
+                except Exception as retry_exc:
+                    if not _COOKIE_PROBLEM.search(f"{logger.last_error} {retry_exc}"):
+                        raise
+                    raise ProviderError(LOGIN_UNREADABLE) from retry_exc
         except yt_dlp.utils.DownloadError as exc:
             raise ProviderError(_clean_error(logger.last_error or str(exc))) from exc
         if not info:

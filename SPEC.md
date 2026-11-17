@@ -1451,3 +1451,15 @@ My wish (the owner): record everything, push, and make a new small release.
 
 - Everything since 1.0.0 was already recorded above and pushed.
 - The version is now 1.1.0 (`pyproject.toml`, `ui/package.json` and both lock files), tagged `v1.1.0`, and published on GitHub as "THE Downloader 1.1" with notes on what changed: failed downloads that stay findable, Try all again, Clear all, Spotify songs falling back to another recording, the queue pausing when YouTube blocks downloads, and the optional YouTube login.
+
+### Nov 17, 2026: The login is also used for reading a link (1.1.1)
+
+The owner set the app up for their sister, signed in to YouTube in Firefox (Test the login found the account), but pressing **Read link** on a YouTube video still said "YouTube wants a signed-in account for this right now".
+
+**Cause:** the login was only tried for downloads. Her connection hits YouTube's sign-in wall already when the link is read, and that step never tried the login.
+
+**Fix:** reading a YouTube link now works like downloading: first without the login, and if YouTube asks for a signed-in account, once more with the login from Settings. A login that cannot be read gives the plain "could not be read" message.
+
+**Tested:** 2 new checks with a stand-in for yt-dlp that refuses without a login and answers with one: with Firefox set up, the link is read on the second try with the login; without a login, the plain sign-in message. Her video read fine from this PC, which is not blocked at the moment. Earlier checks pass.
+
+The version is now 1.1.1 and the fix is pushed, so her copy can get it through Settings > Updates > Update and restart. A GitHub release for 1.1.1 waits for my OK.
