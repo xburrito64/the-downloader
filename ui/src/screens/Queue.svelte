@@ -1,6 +1,6 @@
 <script>
   import { api } from "../lib/api.js";
-  import { activeCount, app, attempt, clearFinished, failedCount, notify } from "../lib/state.svelte.js";
+  import { activeCount, app, attempt, clearAll, clearFinished, failedCount, notify } from "../lib/state.svelte.js";
   import { plural } from "../lib/format.js";
   import JobRow from "../lib/JobRow.svelte";
   import VirtualGrid from "../lib/VirtualGrid.svelte";
@@ -16,6 +16,20 @@
   let onlyFailed = $state(false);
   $effect(() => { if (!failed) onlyFailed = false; });
   const shown = $derived(onlyFailed ? app.jobs.filter((job) => job.status === "failed") : app.jobs);
+
+  // Clear all asks once more when it would also stop downloads that are not finished.
+  let confirming = $state(false);
+  let confirmTimer = 0;
+  function clearEverything() {
+    if (waiting && !confirming) {
+      confirming = true;
+      clearTimeout(confirmTimer);
+      confirmTimer = setTimeout(() => (confirming = false), 4000);
+      return;
+    }
+    confirming = false;
+    clearAll();
+  }
 
   let retrying = $state(false);
   async function retryAll() {
@@ -37,6 +51,12 @@
     {#if anyMoving}<button class="key" onclick={() => attempt(api.pauseAll)}>Pause all</button>{/if}
     {#if anyPaused}<button class="key" onclick={() => attempt(api.resumeAll)}>Resume all</button>{/if}
     {#if clearable}<button class="key" onclick={clearFinished} title="Takes away what went well. Downloads that failed stay.">Clear finished</button>{/if}
+    {#if app.jobs.length}
+      <button class="key" class:danger={confirming} onclick={clearEverything}
+        title="Empties the whole queue, failed and unfinished downloads included. Saved files and the Library stay.">
+        {confirming ? `Also stop ${waiting}? Click again` : "Clear all"}
+      </button>
+    {/if}
   </div>
 
   {#if failed}
@@ -69,4 +89,5 @@
     background: var(--edge); border-radius: var(--r-m); box-shadow: inset 4px 0 0 var(--rose); }
   .problems b { color: var(--rose); font: 400 24px/1 var(--font-display); margin-right: auto; }
   .problems .key { background: var(--raised); }
+  .danger { background: var(--rose) !important; color: var(--edge); }
 </style>

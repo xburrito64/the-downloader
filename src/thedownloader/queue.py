@@ -150,6 +150,13 @@ class DownloadQueue:
             _delete_partial_files(job.target)
             self._emit_job(job)
 
+    def cancel_all(self) -> int:
+        """Stop everything that is waiting, running or paused. Finished downloads are not touched."""
+        jobs = self._store.list(ACTIVE, limit=100_000)
+        for job in jobs:
+            self.cancel(job.id)
+        return len(jobs)
+
     def pause_all(self) -> int:
         jobs = self._store.list(("queued", "running"), limit=100_000)
         for job in jobs:

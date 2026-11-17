@@ -61,7 +61,15 @@ function celebrate(job) {
   if (app.sprouts.length > MAX_SPROUTS) app.sprouts.shift();
 }
 
+// Downloads taken off the Queue with Clear all. The engine's "stopped" news for them can arrive a moment
+// later and must not bring the rows back; only a fresh start (Try again from the Library) does.
+const cleared = new Set();
+
 export function putJob(job) {
+  if (cleared.has(job.id)) {
+    if (job.status !== "queued") return;
+    cleared.delete(job.id);
+  }
   const index = app.jobs.findIndex((existing) => existing.id === job.id);
   const before = index >= 0 ? app.jobs[index].status : "";
   if (job.status === "done" && before !== "done") celebrate(job);   // before the row sees its new state
@@ -83,6 +91,19 @@ export function addJob(job) {
 /** Clears what went well. Downloads that failed stay, so they can still be tried again. */
 export function clearFinished() {
   app.jobs = app.jobs.filter((job) => ACTIVE.includes(job.status) || job.status === "failed");
+}
+
+/** Empties the Queue completely: stops what is waiting, running or paused, and takes every row away.
+    Finished files and the Library are not touched. */
+export async function clearAll() {
+  for (const job of app.jobs) cleared.add(job.id);
+  const stopped = await attempt(api.cancelAll);
+  if (stopped === undefined) {
+    cleared.clear();
+    return;
+  }
+  app.jobs = [];
+  notify(stopped.cancelled ? `Queue cleared. ${stopped.cancelled} unfinished ${stopped.cancelled === 1 ? "download was" : "downloads were"} stopped.` : "Queue cleared.");
 }
 
 export function failedCount() {

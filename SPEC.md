@@ -1434,3 +1434,13 @@ My question (the owner): after logging in to YouTube in Opera GX and choosing it
 - **Tested:** 4 new checks, one of them a real run with yt-dlp (YouTube's sign-in wall, then a login that cannot be read gives the new message). All earlier checks pass.
 
 **Switching to a second account (recommended):** set Settings > YouTube login to Off now. Then install Firefox, sign in on youtube.com there with a second Google account only, choose Firefox in Settings, and press Test the login. Opera GX keeps the main account for everyday use, untouched.
+
+### Nov 17, 2026: Clear all
+
+My wish (the owner): a button that clears my entire Queue, really everything at once.
+
+- **Clear all** in the Queue heading empties it completely: failed rows, finished rows, and anything still waiting, running or paused, which is stopped. Saved files and the Library are not touched.
+- When it would stop unfinished downloads, the first click turns the button red and asks "Also stop 6? Click again"; it goes back after 4 seconds. With nothing unfinished, one click clears.
+- **Clear finished** stays as it was: it takes away only what went well.
+- New engine route `POST /api/queue/cancel-all`. The window ignores the late "stopped" news for rows already cleared, so they do not come back (caught while testing: two rows reappeared at first).
+- **Tested:** in the window with a separate test engine: 2 running and 4 waiting, Clear all asked once, then the Queue was empty and the engine had nothing left. In code: 5 jobs, one of them paused, were all stopped. The queue and API checks still pass.

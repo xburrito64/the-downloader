@@ -420,6 +420,9 @@ def create_app(state: AppState) -> Starlette:
         state.queue.pause_all()
         return {"ok": True}
 
+    def cancel_all(_request: Request, _body: dict):
+        return {"cancelled": state.queue.cancel_all()}
+
     def resume_all(_request: Request, _body: dict):
         state.queue.resume_all()
         return {"ok": True}
@@ -584,6 +587,7 @@ def create_app(state: AppState) -> Starlette:
         route("/api/queue", "GET", get_queue),
         route("/api/queue/pause-all", "POST", pause_all),
         route("/api/queue/resume-all", "POST", resume_all),
+        route("/api/queue/cancel-all", "POST", cancel_all),
         route("/api/jobs/{job_id:int}/matches", "GET", job_matches),
         route("/api/jobs/{job_id:int}/rematch", "POST", job_rematch, with_body=True),  # before the general one below
         route("/api/jobs/{job_id:int}/{action}", "POST", job_action),
