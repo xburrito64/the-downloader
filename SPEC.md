@@ -1463,3 +1463,15 @@ The owner set the app up for their sister, signed in to YouTube in Firefox (Test
 **Tested:** 2 new checks with a stand-in for yt-dlp that refuses without a login and answers with one: with Firefox set up, the link is read on the second try with the login; without a login, the plain sign-in message. Her video read fine from this PC, which is not blocked at the moment. Earlier checks pass.
 
 The version is now 1.1.1 and the fix is pushed, so her copy can get it through Settings > Updates > Update and restart. With my OK, it was published as the GitHub release "THE Downloader 1.1.1" (tag `v1.1.1`).
+
+### Nov 17, 2026: Songs named after their series, and full-width brackets
+
+My wish (the owner): "無職転生" by 藤澤慶昌 said "No matching recording was found on YouTube Music", and Other match did not list it either, although YouTube Music has the exact song. A few other songs with Japanese symbols had the same problem.
+
+**Cause:** the song is called 無職転生, which is also the name of the whole series. A YouTube Music search for "藤澤慶昌 無職転生" returns the other tracks of the same soundtracks, which all mention the series in their album name, and the song itself is not among the first results. The symbols were not the problem here: the matcher already reads Japanese.
+
+**Fixed**
+
+- **The album is opened when the title search finds nothing convincing.** The app searches YouTube Music for the song's album (from Spotify), opens it when the name matches, and scores its track list. The song is then found at 96% fit (2:18 on YouTube Music, 2:17 on Spotify). This costs two more requests, and only for songs the normal search could not place; easy songs still cost one search, and the video search is skipped when the album had it.
+- **Full-width brackets count as notes.** Japanese and Chinese titles write notes in （…） or 【…】, for example "旅人の唄（『無職転生』より）". These are now ignored like ordinary (…) and […] notes, so the title compares as "旅人の唄".
+- **Tested:** 7 new checks against the real YouTube Music (this song found and trusted, no video search needed, the bracket rules, an easy song still one search). Coffee Breath, Frame of Mind, Bohemian Rhapsody and Blinding Lights still match at 100%. The fallback and login checks pass.

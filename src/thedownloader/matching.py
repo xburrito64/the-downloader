@@ -7,6 +7,7 @@ the user picks another in the preview.
 
 import re
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 
@@ -19,7 +20,7 @@ _VERSION_WORDS = (
     "nightcore", "8d", "reverb", "demo", "edit", "extended", "remaster", "mix",
 )
 MIN_SCORE = 0.60  # below this, a candidate is not trusted as an automatic match
-_BRACKETS = re.compile(r"[\(\[][^\)\]]*[\)\]]")
+_BRACKETS = re.compile(r"[\(\[【][^\)\]】]*[\)\]】]")
 _FEAT = re.compile(r"\b(feat\.?|ft\.?|featuring|with)\b.*", re.IGNORECASE)
 
 
@@ -42,6 +43,8 @@ def _normalise(text: str) -> str:
 
 def _core_title(title: str) -> str:
     """Title without bracketed notes, "- Remastered 2011" tails and featured artists."""
+    # Japanese and Chinese titles use full-width brackets and dashes: （より） becomes (より) first.
+    title = unicodedata.normalize("NFKC", title)
     title = _BRACKETS.sub(" ", title)
     title = title.split(" - ")[0]
     title = _FEAT.sub("", title)
@@ -136,7 +139,7 @@ class Matcher:
         found: dict[str, Candidate] = {}
         channels: dict[str, set[str]] = {}  # the artists' channel IDs, by video
 
-        def collect(results: list[dict], kind: str) -> None:
+        def collect(results: list[dict], kind: str, album: str = "") -> None:
             for result in results:
                 video_id = result.get("videoId")
                 if not video_id or video_id in found:
@@ -149,19 +152,45 @@ class Matcher:
                     video_id=video_id,
                     title=title,
                     artist=", ".join(a for a in artists if a),
-                    album=(result.get("album") or {}).get("name", "") if isinstance(result.get("album"), dict) else "",
+                    album=album or ((result.get("album") or {}).get("name", "") if isinstance(result.get("album"), dict) else ""),
                     duration_seconds=duration,
                     kind=kind,
                     score=score(item, title, artists, duration, kind),
                 )
 
+        def best() -> float:
+            return max((c.score for c in found.values()), default=0.0)
+
         collect(self._search(query, "songs", limit), "song")
-        best = max((c.score for c in found.values()), default=0.0)
-        # Only look at plain videos when the song catalogue has no convincing result.
-        if best < 0.85:
+        # The next steps only run when nothing convincing was found, so most songs cost one search.
+        if best() < 0.85:
+            self._from_album(item, collect)
+        if best() < 0.85:
             collect(self._search(query, "videos", limit), "video")
             self._same_channel(item, found, channels)
         return sorted(found.values(), key=lambda c: c.score, reverse=True)
+
+    def _from_album(self, item: Item, collect: Callable[..., None]) -> None:
+        """Look for the song inside its album on YouTube Music.
+
+        A search by title fails when the title is a common word or the name of the whole
+        series: the soundtrack song "無職転生" drowns among the other 29 tracks of the
+        "無職転生" soundtrack, which all mention the series. The album itself is easy to
+        find, and its track list holds the song. Costs two requests.
+        """
+        if not item.album or not item.artist:
+            return
+        wanted = _core_title(item.album)
+        try:
+            albums = self._search(f"{item.album} {item.artist.split(', ')[0]}", "albums", 5)
+            match = next((a for a in albums[:5] if a.get("browseId")
+                          and _similarity(_core_title(a.get("title") or ""), wanted) >= 0.85), None)
+            if match is None:
+                return
+            album = self._client.get_album(match["browseId"])
+        except Exception:
+            return  # an extra step; the title search and the video search still count
+        collect([t for t in album.get("tracks") or [] if t.get("isAvailable", True)], "song", album.get("title") or "")
 
     def _same_channel(self, item: Item, found: dict[str, Candidate], channels: dict[str, set[str]]) -> None:
         """Count a result as the right artist when it comes from the artist's own channel.
