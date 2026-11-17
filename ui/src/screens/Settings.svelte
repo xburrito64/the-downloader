@@ -215,7 +215,7 @@
           <button class="key" onclick={testLogin} disabled={testing}>{testing ? "Testing" : "Test the login"}</button>
           {#if loginResult}<span class:ok={loginResult.ok} class:bad={!loginResult.ok}>{loginResult.message}</span>{/if}
         </div>
-        <p class="hint">Firefox works best. Chrome, Edge and other Chrome-based browsers lock their cookies away on Windows, so reading them often fails; a cookies file always works.</p>
+        <p class="hint">Firefox works best, even while it is open. Chrome-based browsers (Chrome, Edge, Opera, Opera GX, Brave) lock the login while they are open, so they would have to be closed completely during downloads, and since Chrome 127 their cookies often cannot be read at all. A cookies file always works.</p>
       {/if}
     </section>
 

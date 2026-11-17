@@ -11,7 +11,7 @@ from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from ..errors import explain
+from ..errors import LOGIN_UNREADABLE, explain
 from .base import DownloadOptions, Item, Progress, ProviderError, Resolved, Stopped
 
 _HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}
@@ -32,6 +32,7 @@ LOGIN_SOURCES = {
 LOGIN_NAMES = {"firefox": "Firefox", "chrome": "Chrome", "edge": "Edge", "brave": "Brave", "opera": "Opera",
                "opera_gx": "Opera GX", "file": "the cookies file"}
 # Failures a signed-in account can get past: age-restricted videos, and YouTube asking to sign in.
+_COOKIE_PROBLEM = re.compile(r"cookie|decrypt|dpapi|keyring", re.IGNORECASE)
 _NEEDS_LOGIN = re.compile(r"confirm your age|age.restricted|inappropriate for some users|sign in|not a bot|"
                           r"protect our community", re.IGNORECASE)
 
@@ -278,7 +279,15 @@ class YouTubeProvider:
                 if not (login and _NEEDS_LOGIN.search(raw)):
                     raise
                 logger.last_error = ""
-                info = fetch(login)
+                try:
+                    info = fetch(login)
+                except Exception as retry_exc:
+                    # yt-dlp reads the browser's cookies before anything else. When that fails, the login
+                    # could not even be tried: say so plainly instead of passing on yt-dlp's text.
+                    text = f"{logger.last_error} {retry_exc}"
+                    if isinstance(retry_exc, (Stopped, yt_dlp.utils.DownloadCancelled)) or not _COOKIE_PROBLEM.search(text):
+                        raise
+                    raise ProviderError(LOGIN_UNREADABLE) from retry_exc
         except yt_dlp.utils.DownloadCancelled as exc:
             raise Stopped() from exc
         except yt_dlp.utils.DownloadError as exc:

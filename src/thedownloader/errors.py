@@ -10,6 +10,9 @@ AGE_RESTRICTED = ("This video is age-restricted. YouTube only gives it to a sign
                   "add your YouTube login in Settings, then try again.")
 # YouTube blocks this internet connection for a while, for every video, until it signs in.
 SIGN_IN = "YouTube wants a signed-in account for this right now. Wait a while and try again, or add your YouTube login in Settings."
+# The YouTube login chosen in Settings could not be read (Chrome-based browsers lock it while they are open).
+LOGIN_UNREADABLE = ("The YouTube login from your browser could not be read: Chrome-based browsers such as Opera GX lock it "
+                    "while they are open. Close the browser completely, or switch Settings > YouTube login to Firefox or Off.")
 PRIVATE = "This video is private."
 MEMBERS_ONLY = "This video is for channel members only."
 WRONG_COUNTRY = "This video is not available in your country."
@@ -19,6 +22,8 @@ VIDEO_BLOCKED = {AGE_RESTRICTED, PRIVATE, MEMBERS_ONLY, WRONG_COUNTRY, REMOVED}
 
 # (pattern, message). The first pattern that matches wins, so specific ones come first.
 _KNOWN: list[tuple[re.Pattern, str]] = [(re.compile(pattern, re.IGNORECASE), message) for pattern, message in [
+    (r"cookie database|failed to decrypt|cookies? (could not|cannot) be (read|loaded)|could not find .*cookies",
+     LOGIN_UNREADABLE),
     (r"confirm you.?re not a bot|please sign in|protect our community",
      SIGN_IN),
     (r"confirm your age|age.restricted|inappropriate for some users",

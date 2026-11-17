@@ -13,7 +13,7 @@ from pathlib import Path
 
 from . import naming, tagging
 from .config import Settings
-from .errors import SIGN_IN, explain
+from .errors import LOGIN_UNREADABLE, SIGN_IN, explain
 from .providers.base import DownloadOptions, Item, Progress, ProviderError, Stopped
 from .store import ACTIVE, Job, Store
 
@@ -271,14 +271,16 @@ class DownloadQueue:
                 self._emit_job(self._store.set_status(job.id, "paused"))
         except ProviderError as exc:
             self._emit_job(self._store.set_status(job.id, "failed", error=str(exc)))
-            if str(exc) == SIGN_IN:
-                # YouTube is blocking this connection for every video right now. Going on would only
-                # make the rest of the list fail one by one, so everything still waiting is paused.
+            if str(exc) in (SIGN_IN, LOGIN_UNREADABLE):
+                # Either YouTube is blocking this connection for every video right now, or the login
+                # chosen in Settings cannot be read. Going on would only make the rest of the list fail
+                # one by one, so everything still waiting is paused.
                 paused = self.pause_all()
                 if paused:
+                    reason = ("The YouTube login could not be read (close the browser, or change Settings > YouTube login)"
+                              if str(exc) == LOGIN_UNREADABLE else "YouTube is blocking downloads for now")
                     self._emit({"type": "notice", "kind": "problem", "text":
-                                f"YouTube is blocking downloads for now, so the {paused} waiting were paused. "
-                                "Resume them later, or add your YouTube login in Settings."})
+                                f"{reason}, so the {paused} waiting were paused. Resume them when it is sorted."})
         except Exception as exc:
             self._emit_job(self._store.set_status(job.id, "failed", error=explain(f"Unexpected error: {exc}")))
         else:

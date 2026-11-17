@@ -1417,3 +1417,20 @@ My notes (the owner): it is hard to tell how many songs did not download, and "C
 - All earlier checks pass. One wording check was updated, because the sign-in message changed on purpose.
 
 Sources on the cookie situation: [yt-dlp issue 10927](https://github.com/yt-dlp/yt-dlp/issues/10927) (Chrome 127+ app-bound encryption), [yt-dlp issue 7271](https://github.com/yt-dlp/yt-dlp/issues/7271) (locked cookie database while a Chrome-based browser is open), [yt-dlp FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ).
+
+### Nov 17, 2026: The Opera GX login could not be read
+
+My question (the owner): after logging in to YouTube in Opera GX and choosing it in Settings, almost a whole playlist failed with "ERROR: Could not copy Chrome cookie database". Is that the login, or downloading too much? And I am logged in with my main Google account; can I switch?
+
+**What happened.** Both. Each song first went without the login and hit YouTube's sign-in wall (this connection is still blocked after today's many downloads). The app then tried again with the login, but Opera GX keeps its cookie file locked while it is open, so yt-dlp could not read it. That error was passed on as it was, and because it was not the sign-in message, the queue did not pause: the songs failed one by one.
+
+**Good news for the main account:** the login was never actually used. It could not be read, so no download went out with it. The one song that worked went through without a login.
+
+**Fixed**
+
+- yt-dlp's cookie errors are now explained: "The YouTube login from your browser could not be read: Chrome-based browsers such as Opera GX lock it while they are open. Close the browser completely, or switch Settings > YouTube login to Firefox or Off."
+- When the login cannot be read, the queue pauses the rest, as it does for the sign-in wall, and the status bar says why.
+- The Settings hint now says plainly that Chrome-based browsers have to be closed completely during downloads and often cannot be read at all, and that Firefox works even while open.
+- **Tested:** 4 new checks, one of them a real run with yt-dlp (YouTube's sign-in wall, then a login that cannot be read gives the new message). All earlier checks pass.
+
+**Switching to a second account (recommended):** set Settings > YouTube login to Off now. Then install Firefox, sign in on youtube.com there with a second Google account only, choose Firefox in Settings, and press Test the login. Opera GX keeps the main account for everyday use, untouched.
