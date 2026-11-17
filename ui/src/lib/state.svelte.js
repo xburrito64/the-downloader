@@ -12,6 +12,7 @@ export const app = $state({
   notice: null,        // { text, kind } shown in the status bar for a few seconds
   finished: 0,         // downloads finished since the app opened; each one plays the finish moment
   sprouts: [],         // mushrooms on the forest floor, one per finished download this session
+  matchFor: null,      // the Spotify download whose "Pick another match" window is open
   loadError: "",
 });
 

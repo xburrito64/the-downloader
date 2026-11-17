@@ -14,6 +14,7 @@ import json
 import re
 import subprocess
 import threading
+import webbrowser
 from collections import OrderedDict
 from contextlib import asynccontextmanager
 from dataclasses import asdict, fields, replace
@@ -420,6 +421,33 @@ def create_app(state: AppState) -> Starlette:
         actions[action](job_id)
         return state.store.get(job_id).summary()
 
+    def job_matches(request: Request, _body: dict):
+        """Other YouTube Music recordings for a Spotify song in the queue or the history."""
+        job = state.store.get(request.path_params["job_id"])
+        if job is None:
+            raise ApiError(404, "No such download.")
+        if job.item.provider != "spotify":
+            raise ApiError(422, "Only Spotify songs have matches to choose from.")
+        found = state.provider("spotify").candidates(job.item)
+        return [{**asdict(c), "chosen": c.video_id == job.item.match_id} for c in found]
+
+    def job_rematch(request: Request, body: dict):
+        video_id = body.get("video_id")
+        if not isinstance(video_id, str) or not _VIDEO_ID.match(video_id):
+            raise ApiError(422, "A chosen match is not valid.")
+        if not state.queue.rematch(request.path_params["job_id"], video_id):
+            raise ApiError(422, "Only a finished or failed Spotify song can get another match.")
+        return state.store.get(request.path_params["job_id"]).summary()
+
+    def listen(_request: Request, body: dict):
+        """Open a YouTube Music recording in the browser, to hear it before picking it."""
+        video_id = body.get("video_id")
+        if not isinstance(video_id, str) or not _VIDEO_ID.match(video_id):
+            raise ApiError(422, "Not a valid video.")
+        # The address is built here from a checked ID, never taken from the request.
+        webbrowser.open(f"https://music.youtube.com/watch?v={video_id}")
+        return {"ok": True}
+
     # ---- history ---------------------------------------------------------
 
     def history(request: Request, _body: dict):
@@ -515,7 +543,10 @@ def create_app(state: AppState) -> Starlette:
         route("/api/queue", "GET", get_queue),
         route("/api/queue/pause-all", "POST", pause_all),
         route("/api/queue/resume-all", "POST", resume_all),
+        route("/api/jobs/{job_id:int}/matches", "GET", job_matches),
+        route("/api/jobs/{job_id:int}/rematch", "POST", job_rematch, with_body=True),  # before the general one below
         route("/api/jobs/{job_id:int}/{action}", "POST", job_action),
+        route("/api/listen", "POST", listen, with_body=True),
         route("/api/history", "GET", history),
         route("/api/history/{job_id:int}", "DELETE", forget),
         Route("/api/events", events, methods=["GET"]),

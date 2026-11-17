@@ -2,7 +2,7 @@
   // One download as a row: cover, names, what is happening, and its buttons. Used by Queue and Library.
   import Cover from "./Cover.svelte";
   import { api } from "./api.js";
-  import { attempt, finishedAt, notify, progress } from "./state.svelte.js";
+  import { app, attempt, finishedAt, notify, progress } from "./state.svelte.js";
   import { speed } from "./format.js";
 
   let { job, onforget = null } = $props();
@@ -65,6 +65,10 @@
     {:else if job.status === "done"}
       {#if !onforget}<span class="stamp" class:fresh>Got it<i></i><i></i><i></i><i></i></span>{/if}
       <button class="key" onclick={() => act("reveal")}>Show file</button>
+    {/if}
+    {#if job.provider === "spotify" && ["failed", "cancelled", "done"].includes(job.status)}
+      <button class="key" class:quiet={job.status === "done"} onclick={() => (app.matchFor = job)}
+        title="Choose the YouTube Music recording yourself">Other match</button>
     {/if}
     {#if onforget}
       <button class="key quiet" onclick={() => onforget(job)} title="Remove from this list. The file stays.">Remove</button>

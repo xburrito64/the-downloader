@@ -8,7 +8,7 @@ import glob
 import threading
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from . import naming
@@ -114,6 +114,23 @@ class DownloadQueue:
 
     def retry(self, job_id: int) -> None:
         self._requeue(job_id, ("failed", "cancelled"))
+
+    REMATCHABLE = ("failed", "cancelled", "done")
+
+    def rematch(self, job_id: int, video_id: str) -> bool:
+        """Download a Spotify song again from a YouTube Music recording picked by hand.
+
+        A finished song's file is the wrong recording, so it is deleted first: the new
+        download goes to the same place and would otherwise be skipped as already there.
+        """
+        job = self._store.get(job_id)
+        if job is None or job.item.provider != "spotify" or job.status not in self.REMATCHABLE:
+            return False
+        self._store.set_item(job_id, replace(job.item, match_id=video_id))
+        if job.status == "done" and job.file_path:
+            Path(job.file_path).unlink(missing_ok=True)
+        self._requeue(job_id, self.REMATCHABLE)
+        return True
 
     def _requeue(self, job_id: int, only_if: tuple[str, ...]) -> None:
         job = self._store.set_status(job_id, "queued", only_if=only_if)

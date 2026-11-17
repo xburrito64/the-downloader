@@ -161,6 +161,11 @@ class Store:
             row = self._db.execute(query + " RETURNING *", values).fetchone()
         return _to_job(row) if row else None
 
+    def set_item(self, job_id: int, item: Item) -> None:
+        """Store a changed item, for example one with a match chosen by hand."""
+        with self._lock:
+            self._db.execute("UPDATE jobs SET item_json = ? WHERE id = ?", (json.dumps(asdict(item)), job_id))
+
     def requeue_interrupted(self) -> int:
         """Jobs left "running" by a crash or a closed app go back to the queue."""
         with self._lock:

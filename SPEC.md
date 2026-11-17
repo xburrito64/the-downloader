@@ -207,8 +207,8 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 5 | API | Done, Nov 16, 2026 |
 | 6 | Design concept | Direction approved Nov 16, 2026. Deep green `#063420` with the Foxglove pink accent |
 | 7 | UI v1 in its window | Done, Nov 17, 2026. Tried by hand by me |
-| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 4 done (one-post sign, tree bases, background reaches the ground). Finished-download moment built (hop and spores, mushrooms, stamp), on trial. Garbled text fixed, mushroom motion smooth. Playlist folders, better matching for renamed artists |
-| 9 | Repo hygiene | Not started (optional) |
+| 8 | Polish and the real design pass | Done, Nov 17, 2026 |
+| 9 | Repo hygiene | Files written (README, LICENSE, THIRD_PARTY.md, font licence, screenshots). Repository still private, waiting for my go-ahead |
 
 ### Nov 16, 2026: Milestone 0, spec review and planning
 
@@ -1221,3 +1221,62 @@ I downloaded a Spotify playlist through the window, the first time Spotify login
 The fix: when nothing convincing is found by name, the matcher looks up the Spotify artist's channel on YouTube Music (one extra search) and counts results from that channel as the right artist. "Coffee Breath" by Flicka Roe now matches with full marks. A song of the same name by someone else (Lucy Gray) still matches only that artist. Restart the app, then press "Try again" on the failed row.
 
 **What was tested:** 6 new checks (4 for folders, 2 live matching checks against YouTube Music), plus the 35 queue, 43 API and 16 milestone 8 checks. All pass. The new setting is shown and saved in the browser view.
+
+### Nov 17, 2026: Milestone 8 finished
+
+I asked to finish milestone 8. The finished-download moment stays as it is for now.
+
+**Pick another match.** Spotify songs in the Queue and the Library that failed, were cancelled or finished now have an "Other match" button. It opens a window listing what YouTube Music has for that song, with each result's fit (how well title, artist and length agree with Spotify), a Listen button that opens it in the browser, and "Use this".
+
+- Picking one stores it with the download and downloads the song again from that recording. For a finished song, the old file is deleted first, because it is the wrong recording and the new one goes to the same place.
+- New engine routes: `GET /api/jobs/{id}/matches`, `POST /api/jobs/{id}/rematch` and `POST /api/listen`. Listen builds the address itself from a checked video ID; nothing from the request is opened as given.
+- Tested with a real Spotify song: the list showed 20 results; picking the second replaced the 3:34 file with the 3:37 recording that was picked. The test song and its Library entry were deleted afterwards.
+
+**Memory and processor while downloading,** with the real window open on the Queue screen, 12 songs from a YouTube playlist, 2 at a time:
+
+| Moment | Memory of its own (all processes) |
+| --- | --- |
+| Idle on Home | 140 MB |
+| While downloading | 205 to 222 MB, 223 MB on average |
+| Short peak when Deno runs (about a second, once) | 432 MB |
+| After the downloads, Queue still open | 212 MB |
+
+Processor: 31% of one core on average while downloading, nothing while idle. All 12 finished, all 12 mushrooms grew, every row showed Saved.
+
+A false alarm along the way: in a first run half the rows stayed on Waiting. The cause was the test setup, not the app. Another copy of the engine (my test server, and my own open app window) used the same download list and took half the jobs. With only one engine running, nothing was lost.
+
+**Milestone 8 is done.** Everything it set out to do is built: mascot, stamp, empty-screen pictures, extra animation, error messages, empty states and the efficiency measurements. Small leftovers for later: whether the finish moment is too much, and more forest tweaks once I know what I would change.
+
+### Nov 17, 2026: Milestone 9, getting ready to publish
+
+I would like to publish the project on GitHub if there are no problems.
+
+**New files**
+
+- `README.md`: what the app does, two screenshots, a clear note on YouTube's and Spotify's terms, installation with winget, Spotify setup, and where files go.
+- `LICENSE`: MIT, in the name of the GitHub account (xburrito64), not a real name.
+- `THIRD_PARTY.md`: every library, font and outside program with its licence.
+- `ui/src/fonts/OFL.txt`: the font licence. Both fonts are under the SIL Open Font License 1.1, checked against the Google Fonts repository: Jersey 15 (2023 The Soft Type Project Authors) and Nunito (2014 The Nunito Project Authors). The licence has to travel with the fonts, so it is now next to them.
+- `docs/home.png` and `docs/queue.png`: screenshots of the real window. The thumbnails in them are "Me at the zoo" and "Big Buck Bunny" (CC BY), so no one else's album art is shown.
+- `pyproject.toml` now says `license = "MIT"`.
+
+**Licence check of every dependency**
+
+| Licence | Packages |
+| --- | --- |
+| MIT, BSD, Apache, ISC, MPL-2.0, PSF, Unlicense | yt-dlp, ytmusicapi, pywebview, Starlette, Uvicorn, Requests, Svelte, Vite and everything they pull in |
+| GPL-2.0-or-later | mutagen (tags) |
+
+All of them allow publishing this code under MIT. mutagen being GPL only matters if someone hands out a packaged program that includes it; then that package falls under the GPL. This is written in `THIRD_PARTY.md`.
+
+**Search of the whole history (all commits) for things that should not be public**
+
+| What | Found? |
+| --- | --- |
+| Spotify client ID, login tokens, passwords, keys | No. Only the code's own variable names |
+| Downloaded media, ffmpeg or Deno programs | No. The largest files are the lock file and the design pictures |
+| My Windows user name | Once, in a path in this file. Replaced with a plain description |
+| My first name | Yes, in this file (the log is written in my voice) and in three code comments |
+| My email address | Yes, as the author of every commit |
+
+**Not done yet, waiting for me:** the repository is still private. Making it public is my decision, after the two open points above (first name, email in the commit history) are settled.

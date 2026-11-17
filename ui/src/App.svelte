@@ -7,6 +7,7 @@
   import Queue from "./screens/Queue.svelte";
   import Library from "./screens/Library.svelte";
   import Settings from "./screens/Settings.svelte";
+  import MatchPicker from "./lib/MatchPicker.svelte";
 
   const tabs = [
     { id: "home", name: "Home", icon: "M12 3 3 11h3v9h5v-6h2v6h5v-9h3z" },
@@ -139,6 +140,10 @@
     </span>
     <span>{ytdlp ? `yt-dlp ${ytdlp}` : ""}</span>
   </footer>
+
+  {#if app.matchFor}
+    {#key app.matchFor.id}<MatchPicker job={app.matchFor} />{/key}
+  {/if}
 
   {#if inWindow && !maximized}
     <div class="grip" onpointerdown={gripDown} onpointermove={gripMove} onpointerup={gripUp} onpointercancel={gripUp} aria-hidden="true"></div>
