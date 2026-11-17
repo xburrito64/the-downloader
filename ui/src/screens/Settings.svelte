@@ -2,6 +2,28 @@
   import { api, windowApi } from "../lib/api.js";
   import { app, attempt, checkForUpdate, notify, refreshStatus, saveSettings } from "../lib/state.svelte.js";
 
+  const loginChoices = [["", "Off"], ["firefox", "Firefox"], ["chrome", "Chrome"], ["edge", "Edge"], ["opera", "Opera"],
+    ["opera_gx", "Opera GX"], ["brave", "Brave"], ["file", "Cookies file"]];
+  let testing = $state(false);
+  let loginResult = $state(null);
+
+  async function chooseLogin(value) {
+    loginResult = null;
+    await attempt(() => saveSettings({ youtube_login: value }));
+  }
+  async function pickCookies() {
+    const file = await windowApi()?.choose_cookies_file();
+    if (file) {
+      loginResult = null;
+      await attempt(() => saveSettings({ youtube_cookies_file: file }));
+    }
+  }
+  async function testLogin() {
+    testing = true;
+    loginResult = await attempt(api.testYoutubeLogin);
+    testing = false;
+  }
+
   let updating = $state(false);
   const version = $derived(app.status?.version);
 
@@ -166,6 +188,38 @@
     </section>
 
     <section>
+      <h2>YouTube login</h2>
+      <p class="hint">
+        Some videos, such as age-restricted ones, YouTube only gives to a signed-in account. The app can borrow the
+        login from a browser where you are signed in to YouTube. It is only used for videos that need it, and it
+        never leaves this PC. YouTube may frown on accounts used for downloading, so a second Google account is the safe choice.
+      </p>
+      <div class="line wrap">
+        <span class="seg" role="group" aria-label="Where the YouTube login comes from">
+          {#each loginChoices as [value, label] (value)}
+            <button aria-pressed={(app.settings.youtube_login || "") === value} onclick={() => chooseLogin(value)}>{label}</button>
+          {/each}
+        </span>
+      </div>
+      {#if app.settings.youtube_login === "file"}
+        <div class="field">
+          <span>Cookies file (cookies.txt, exported from your browser while signed in to YouTube)</span>
+          <span class="line">
+            <code class="grow">{app.settings.youtube_cookies_file || "No file picked yet"}</code>
+            {#if windowApi()}<button class="key" onclick={pickCookies}>Pick file</button>{/if}
+          </span>
+        </div>
+      {/if}
+      {#if app.settings.youtube_login}
+        <div class="line wrap">
+          <button class="key" onclick={testLogin} disabled={testing}>{testing ? "Testing" : "Test the login"}</button>
+          {#if loginResult}<span class:ok={loginResult.ok} class:bad={!loginResult.ok}>{loginResult.message}</span>{/if}
+        </div>
+        <p class="hint">Firefox works best. Chrome, Edge and other Chrome-based browsers lock their cookies away on Windows, so reading them often fails; a cookies file always works.</p>
+      {/if}
+    </section>
+
+    <section>
       <h2>Motion</h2>
       <div class="line wrap">
         <span class="seg" role="group" aria-label="Motion">
@@ -239,6 +293,8 @@
   .checks strong { color: var(--ink); }
   .checks em { font-style: normal; color: var(--ink); }
   .head .big { font-size: 24px; padding: 8px 18px 10px; box-shadow: 0 5px 0 var(--edge); }
+  .bad { color: var(--rose); font-weight: 700; }
+  code.grow { flex: 1; min-width: 0; }
   .big.small { font-size: 24px; padding: 8px 18px 10px; }
   .news { display: grid; gap: 10px; background: var(--raised); border-radius: var(--r-m); padding: 14px 16px; box-shadow: 0 4px 0 var(--edge); }
   .news b { font: 400 24px/1.1 var(--font-display); color: var(--accent); }

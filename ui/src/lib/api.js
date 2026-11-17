@@ -48,8 +48,9 @@ export const api = {
   listen: (videoId) => call("POST", "/api/listen", { video_id: videoId }),
   updateCheck: () => call("GET", "/api/update"),
   updateStart: () => call("POST", "/api/update"),
-  history: (search, offset, limit) =>
-    call("GET", `/api/history?search=${encodeURIComponent(search)}&offset=${offset}&limit=${limit}`),
+  history: (search, offset, limit, onlyFailed = false) =>
+    call("GET", `/api/history?search=${encodeURIComponent(search)}&offset=${offset}&limit=${limit}${onlyFailed ? "&only=failed" : ""}`),
+  testYoutubeLogin: () => call("POST", "/api/youtube-login/test"),
   forget: (id) => call("DELETE", `/api/history/${id}`),
 };
 
@@ -66,7 +67,7 @@ export function openEvents(handlers) {
     if (opened) handlers.reconnected?.();
     opened = true;
   };
-  for (const type of ["job", "progress", "spotify"]) {
+  for (const type of ["job", "progress", "spotify", "notice"]) {
     source.addEventListener(type, (event) => handlers[type]?.(JSON.parse(event.data)));
   }
   return source;

@@ -18,6 +18,7 @@ def build_state(token: str | None = None) -> AppState:
     youtube = YouTubeProvider(
         ffmpeg_path=ffmpeg,
         deno_path=startup.find_program("deno", settings.deno_path),
+        settings=settings,
     )
     providers = [SpotifyProvider(settings.spotify_client_id, youtube), youtube]
     covers.prune()

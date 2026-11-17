@@ -1383,3 +1383,37 @@ My answers (the owner): yes, I moved or deleted the downloaded files myself, so 
 
 - The version is now 1.0.0 (in `pyproject.toml` and `ui/package.json`). Settings shows it: "This is version 1.0.0, from 2026-11-17".
 - The release is tagged `v1.0.0` on GitHub, with notes on what the app does and how to install it. The app is installed from its source (as the README describes), so the release carries no separate program file; GitHub adds the source code as a download.
+
+### Nov 17, 2026: Failed downloads stay findable, and YouTube's sign-in walls
+
+My notes (the owner): it is hard to tell how many songs did not download, and "Clear finished" also removes the failed ones, so I cannot try them again. In a playlist, two songs failed as age-restricted, one with "Please sign in. This helps protect our community", and one with no match (fixed with Other match).
+
+**Failed downloads**
+
+- "Clear finished" now takes away only what went well. Failed downloads stay in the Queue.
+- When something failed, a red bar above the list says "N didn't download", with **All / Only these** to show only the failed ones, and **Try all again**.
+- The Queue tab shows the number still to go, or, when nothing is left, the number that failed, in red.
+- The Queue's heading also says how many were saved.
+- The Library has the same **All / Didn't download** switch, so failed ones can be found there later too (new engine option `only=failed` on `/api/history`).
+
+**Why those songs failed**
+
+- "Please sign in. This helps protect our community" is YouTube blocking this internet connection for every video for a while, after many downloads in a short time. Checked during this round: even "Me at the zoo" was refused at that moment. It passes on its own.
+- Age-restricted videos are only given to signed-in accounts.
+
+**What the app does about it now**
+
+1. **Spotify songs fall back to the next recording.** If YouTube blocks the chosen recording for that one video (age-restricted, private, members only, not in this country, removed), the app tries the next trusted matches, up to three. A connection problem or the sign-in wall is not a reason to switch. A match picked by hand is never swapped.
+2. **The queue pauses on the sign-in wall.** The first download that hits it fails; everything still waiting is paused instead of failing one after another, and the status bar says so ("YouTube is blocking downloads for now, so the 5 waiting were paused..."). **Resume all** continues later. (New engine event type `notice` for messages like this.)
+3. **Optional YouTube login (Settings → YouTube login).** The app can borrow the login from a browser where you are signed in to YouTube (Firefox, Chrome, Edge, Opera, Opera GX, Brave), or from an exported cookies.txt file. It is only used as a second try for a video that needs it, never for the first try, and it stays on this PC. **Test the login** says whether a signed-in account was found. The Settings text recommends a second Google account, because YouTube may frown on accounts used for downloading, and says that Firefox or a cookies file are the reliable choices: Chrome-based browsers lock their cookies away on Windows since Chrome 127, so reading them often fails. Off by default; nothing was set up on my PC.
+4. **Clearer messages.** The sign-in wall now reads "YouTube wants a signed-in account for this right now. Wait a while and try again, or add your YouTube login in Settings." Age-restricted says to add the login in Settings.
+
+**Tested**
+
+- 11 new checks: Spotify fallback with a stand-in for YouTube (the next recording is used; all three blocked fails with the last reason and never tries an untrusted match; a connection problem does not switch; a hand-picked match is never swapped), the new wording, the login choices, and the login test on a cookies file without an account.
+- 2 new checks: the sign-in wall fails one download and pauses the other five, and the window is told why.
+- A real run of the three songs from the screenshot showed the sign-in wall in action. Pixies first hit "age-restricted", then the fallback moved on to the next recording, which met the wall.
+- In the window (a separate test engine with its own history): the red bar, Only these, Try all again, the paused rest with the status-bar message, the red number on the Queue tab, the Library's "Didn't download" switch, and the YouTube login section.
+- All earlier checks pass. One wording check was updated, because the sign-in message changed on purpose.
+
+Sources on the cookie situation: [yt-dlp issue 10927](https://github.com/yt-dlp/yt-dlp/issues/10927) (Chrome 127+ app-bound encryption), [yt-dlp issue 7271](https://github.com/yt-dlp/yt-dlp/issues/7271) (locked cookie database while a Chrome-based browser is open), [yt-dlp FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ).

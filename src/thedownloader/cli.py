@@ -64,6 +64,7 @@ def _providers(settings: config.Settings) -> list:
     youtube = YouTubeProvider(
         ffmpeg_path=startup.find_program("ffmpeg", settings.ffmpeg_path),
         deno_path=startup.find_program("deno", settings.deno_path),
+        settings=settings,
     )
     return [SpotifyProvider(settings.spotify_client_id, youtube), youtube]
 

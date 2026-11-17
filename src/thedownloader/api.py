@@ -30,6 +30,7 @@ from starlette.staticfiles import StaticFiles
 
 from . import APP_NAME, config, covers, spotify_auth, startup, updater
 from .providers.base import ProviderError, Resolved
+from .providers.youtube import LOGIN_SOURCES, test_login
 from .queue import DownloadQueue
 from .store import ACTIVE, Store
 
@@ -218,6 +219,10 @@ def _apply_settings(settings: config.Settings, body: dict) -> None:
     for key in ("ffmpeg_path", "deno_path"):
         if changes.get(key) and not Path(changes[key]).is_file():
             raise ApiError(422, f"{key}: no such file.")
+    if "youtube_login" in changes and changes["youtube_login"] not in ("", "file", *LOGIN_SOURCES):
+        raise ApiError(422, "youtube_login is not a known choice.")
+    if changes.get("youtube_cookies_file") and not Path(changes["youtube_cookies_file"]).is_file():
+        raise ApiError(422, "The cookies file could not be found.")
     # Nothing is changed until everything has passed.
     for key, value in changes.items():
         setattr(settings, key, value)
@@ -479,6 +484,10 @@ def create_app(state: AppState) -> Starlette:
             raise ApiError(422, str(exc)) from None
         return {"ok": True}
 
+    def youtube_login_test(_request: Request, _body: dict):
+        ok, message = test_login(state.provider("youtube"))
+        return {"ok": ok, "message": message}
+
     # ---- history ---------------------------------------------------------
 
     def history(request: Request, _body: dict):
@@ -487,7 +496,8 @@ def create_app(state: AppState) -> Starlette:
             raise ApiError(422, "The search text is too long.")
         limit = _query_int(request, "limit", 60, 1, 500)
         offset = _query_int(request, "offset", 0, 0, 10_000_000)
-        jobs = state.store.list(("done", "failed"), search=search, limit=limit, offset=offset, newest_first=True)
+        statuses = ("failed",) if request.query_params.get("only") == "failed" else ("done", "failed")
+        jobs = state.store.list(statuses, search=search, limit=limit, offset=offset, newest_first=True)
         return [job.summary() for job in jobs]
 
     def forget(request: Request, _body: dict):
@@ -579,6 +589,7 @@ def create_app(state: AppState) -> Starlette:
         route("/api/jobs/{job_id:int}/{action}", "POST", job_action),
         route("/api/listen", "POST", listen, with_body=True),
         route("/api/update", "GET", update_check),
+        route("/api/youtube-login/test", "POST", youtube_login_test),
         route("/api/update", "POST", update_start),
         route("/api/history", "GET", history),
         route("/api/history/{job_id:int}", "DELETE", forget),

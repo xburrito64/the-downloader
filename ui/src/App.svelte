@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { windowApi } from "./lib/api.js";
   import mascot from "./art/mascot.png";
-  import { activeCount, app, start } from "./lib/state.svelte.js";
+  import { activeCount, app, failedCount, start } from "./lib/state.svelte.js";
   import Home from "./screens/Home.svelte";
   import Queue from "./screens/Queue.svelte";
   import Library from "./screens/Library.svelte";
@@ -19,6 +19,7 @@
   let inWindow = $state(false);   // false when the UI is opened in a normal browser
   let maximized = $state(false);
   const waiting = $derived(activeCount());
+  const failed = $derived(failedCount());
   const missing = $derived((app.status?.checks ?? []).filter((check) => !check.ok && check.required));
   const ytdlp = $derived((app.status?.checks ?? []).find((check) => check.name === "yt-dlp")?.detail.split("  ")[0] ?? "");
 
@@ -151,7 +152,8 @@
         <button class="tab" aria-current={app.screen === tab.id ? "page" : null} onclick={() => (app.screen = tab.id)}>
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d={tab.icon}/></svg>
           {tab.name}
-          <span class="count">{tab.id === "queue" && waiting ? waiting : tab.id === "settings" && missing.length ? "!" : ""}</span>
+          <!-- Queue: how many are still to go, or else (in red) how many didn't download -->
+          <span class="count" class:bad={tab.id === "queue" && !waiting && failed}>{tab.id === "queue" ? (waiting || failed || "") : tab.id === "settings" && missing.length ? "!" : ""}</span>
         </button>
       {/each}
     </nav>
@@ -298,6 +300,7 @@
   .tab:hover { color: var(--ink); transform: translateY(-2px); }
   .tab[aria-current="page"] { background: var(--raised); color: var(--ink); box-shadow: 0 4px 0 var(--edge); }
   .count { font: 400 18px/1 var(--font-display); color: var(--accent); min-height: 18px; }
+  .count.bad { color: var(--rose); }
   main { min-width: 0; min-height: 0; }
   main > :global(.screen) { position: relative; }
 

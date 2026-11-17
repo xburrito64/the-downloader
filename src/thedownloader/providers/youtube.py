@@ -20,6 +20,21 @@ _PROGRESS_INTERVAL = 0.25  # seconds between progress updates sent onward
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 _EXTRACT_LOCK = threading.Lock()  # see download(): keeps Deno to one copy at a time
 
+# Where a YouTube login can be borrowed from: yt-dlp's browser name, and a profile folder when it is not the usual one.
+LOGIN_SOURCES = {
+    "firefox": ("firefox", None),
+    "chrome": ("chrome", None),
+    "edge": ("edge", None),
+    "brave": ("brave", None),
+    "opera": ("opera", None),
+    "opera_gx": ("opera", r"%APPDATA%\Opera Software\Opera GX Stable"),
+}
+LOGIN_NAMES = {"firefox": "Firefox", "chrome": "Chrome", "edge": "Edge", "brave": "Brave", "opera": "Opera",
+               "opera_gx": "Opera GX", "file": "the cookies file"}
+# Failures a signed-in account can get past: age-restricted videos, and YouTube asking to sign in.
+_NEEDS_LOGIN = re.compile(r"confirm your age|age.restricted|inappropriate for some users|sign in|not a bot|"
+                          r"protect our community", re.IGNORECASE)
+
 
 class _QuietLogger:
     """Keeps yt-dlp from printing to the terminal; remembers the last error."""
@@ -68,9 +83,23 @@ def _to_item(info: dict) -> Item:
 class YouTubeProvider:
     name = "youtube"
 
-    def __init__(self, ffmpeg_path: str | None = None, deno_path: str | None = None) -> None:
+    def __init__(self, ffmpeg_path: str | None = None, deno_path: str | None = None, settings=None) -> None:
         self._ffmpeg_path = ffmpeg_path
         self._deno_path = deno_path
+        self._settings = settings  # read live, so a login chosen in Settings applies at once
+
+    def login_options(self) -> dict:
+        """yt-dlp options that bring the YouTube login along, or {} when none is set up."""
+        import os
+
+        choice = getattr(self._settings, "youtube_login", "") if self._settings else ""
+        if choice == "file":
+            path = getattr(self._settings, "youtube_cookies_file", "")
+            return {"cookiefile": path} if path and Path(path).is_file() else {}
+        if choice in LOGIN_SOURCES:
+            browser, profile = LOGIN_SOURCES[choice]
+            return {"cookiesfrombrowser": (browser, os.path.expandvars(profile) if profile else None, None, None)}
+        return {}
 
     def handles(self, link: str) -> bool:
         try:
@@ -222,8 +251,8 @@ class YouTubeProvider:
         ydl_options["progress_hooks"] = [progress_hook]
         ydl_options["postprocessor_hooks"] = [postprocessor_hook]
 
-        try:
-            with yt_dlp.YoutubeDL(ydl_options) as ydl:
+        def fetch(extra: dict) -> dict:
+            with yt_dlp.YoutubeDL({**ydl_options, **extra}) as ydl:
                 # Reading a video's details starts Deno, which takes up to 300 MB for a
                 # second or two. Only one download does this at a time; the downloading
                 # itself, which is the slow part, still runs in parallel.
@@ -231,12 +260,25 @@ class YouTubeProvider:
                     if should_stop():
                         raise Stopped()
                 try:
-                    info = ydl.extract_info(item.url, download=False)
+                    found = ydl.extract_info(item.url, download=False)
                 finally:
                     _EXTRACT_LOCK.release()
                 if should_stop():
                     raise Stopped()
-                info = ydl.process_ie_result(info, download=True)
+                return ydl.process_ie_result(found, download=True)
+
+        try:
+            try:
+                info = fetch({})
+            except yt_dlp.utils.DownloadError as exc:
+                # Without a login first: most videos need none, and it keeps the account out of it.
+                # Only a video that YouTube gives to signed-in accounts alone is tried again with the login.
+                raw = logger.last_error or str(exc)
+                login = self.login_options()
+                if not (login and _NEEDS_LOGIN.search(raw)):
+                    raise
+                logger.last_error = ""
+                info = fetch(login)
         except yt_dlp.utils.DownloadCancelled as exc:
             raise Stopped() from exc
         except yt_dlp.utils.DownloadError as exc:
@@ -247,3 +289,32 @@ class YouTubeProvider:
         if not filepath or not Path(filepath).is_file():
             raise ProviderError("The download finished but the file could not be found.")
         return Path(filepath)
+
+
+def test_login(provider: YouTubeProvider) -> tuple[bool, str]:
+    """Check that the chosen YouTube login can be read and holds a signed-in account. (ok, sentence)"""
+    import yt_dlp
+
+    choice = getattr(provider._settings, "youtube_login", "")
+    name = LOGIN_NAMES.get(choice, "")
+    options = provider.login_options()
+    if not options:
+        if choice == "file":
+            return False, "Pick the cookies file first."
+        return False, "Choose where the login comes from first."
+    try:
+        with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True, "logger": _QuietLogger(), **options}) as ydl:
+            names = {cookie.name for cookie in ydl.cookiejar if cookie.domain.endswith("youtube.com") and cookie.value}
+    except Exception as exc:  # yt-dlp raises plain exceptions for locked or unreadable cookie stores
+        text = str(exc)
+        if "copy" in text.lower() and "database" in text.lower():
+            return False, f"{name} keeps its cookies locked while it is open. Close {name} completely, then test again."
+        return False, f"The login in {name} could not be read: {_ANSI.sub('', text)[:160]}"
+    if names & {"LOGIN_INFO", "SAPISID", "__Secure-3PSID", "__Secure-1PSID"}:
+        return True, f"Found a signed-in YouTube account in {name}."
+    if choice in ("chrome", "edge", "brave", "opera", "opera_gx") and not names:
+        return False, (f"No YouTube login could be read from {name}. Chrome-based browsers lock their cookies away on "
+                       f"Windows. Firefox, or a cookies file, works more reliably.")
+    if choice == "file":
+        return False, "The cookies file has no signed-in YouTube account in it. Export it again while signed in on youtube.com."
+    return False, f"{name} has no signed-in YouTube account. Sign in on youtube.com there, then test again."

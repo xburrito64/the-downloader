@@ -12,9 +12,12 @@ from dataclasses import replace
 from pathlib import Path
 
 from .. import spotify_auth, tagging
+from ..errors import VIDEO_BLOCKED
 from ..matching import MIN_SCORE, Candidate, Matcher
 from .base import DownloadOptions, Item, Progress, ProviderError, Resolved, Stopped
 from .youtube import YouTubeProvider
+
+_FALLBACKS = 3  # how many trusted recordings are tried when YouTube blocks the first ones
 
 API = "https://api.spotify.com/v1"
 _LINK = re.compile(
@@ -209,23 +212,34 @@ class SpotifyProvider:
         on_progress: Callable[[Progress], None],
         should_stop: Callable[[], bool],
     ) -> Path:
-        video_id = item.match_id
-        if not video_id:
+        if item.match_id:
+            choices = [item.match_id]  # picked by hand: only that one
+        else:
             found = self.candidates(item)
             if not found or found[0].score < MIN_SCORE:
                 raise ProviderError("No matching recording was found on YouTube Music.")
-            video_id = found[0].video_id
-        if should_stop():
-            raise Stopped()
+            # The best few that are trusted. If YouTube blocks one (age-restricted, removed,
+            # not in this country), the same song is often there again as another recording.
+            choices = [c.video_id for c in found if c.score >= MIN_SCORE][:_FALLBACKS]
 
-        source = Item(
-            provider="youtube",
-            source_id=video_id,
-            url=f"https://music.youtube.com/watch?v={video_id}",
-            title=item.title,
-        )
-        # Spotify downloads are always audio.
-        path = self._youtube.download(source, replace(options, mode="audio"), on_progress, should_stop)
+        path = None
+        for number, video_id in enumerate(choices):
+            if should_stop():
+                raise Stopped()
+            source = Item(
+                provider="youtube",
+                source_id=video_id,
+                url=f"https://music.youtube.com/watch?v={video_id}",
+                title=item.title,
+            )
+            try:
+                # Spotify downloads are always audio.
+                path = self._youtube.download(source, replace(options, mode="audio"), on_progress, should_stop)
+                break
+            except ProviderError as exc:
+                if str(exc) not in VIDEO_BLOCKED or number == len(choices) - 1:
+                    raise
+                on_progress(Progress(0.0, 0.0, "waiting"))  # the next recording starts from the beginning
 
         on_progress(Progress(1.0, 0.0, "tagging"))
         try:

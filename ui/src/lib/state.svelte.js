@@ -80,8 +80,15 @@ export function addJob(job) {
   if (!app.jobs.some((existing) => existing.id === job.id)) app.jobs.push(job);
 }
 
+/** Clears what went well. Downloads that failed stay, so they can still be tried again. */
 export function clearFinished() {
-  app.jobs = app.jobs.filter((job) => ACTIVE.includes(job.status));
+  app.jobs = app.jobs.filter((job) => ACTIVE.includes(job.status) || job.status === "failed");
+}
+
+export function failedCount() {
+  let count = 0;
+  for (const job of app.jobs) if (job.status === "failed") count++;
+  return count;
 }
 
 /** Ask GitHub whether there is a newer version. quiet: a failure is not shown (used for the check at start). */
@@ -132,6 +139,7 @@ export async function start() {
   openEvents({
     job: (event) => putJob(event.job),
     progress: (event) => (progress[event.id] = event),
+    notice: (event) => notify(event.text, event.kind || "info"),   // something the engine wants said, such as a paused queue
     spotify: (event) => {
       refreshStatus();
       if (event.logged_in) notify("Logged in to Spotify.", "good");

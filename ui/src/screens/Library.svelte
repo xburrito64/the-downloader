@@ -6,6 +6,7 @@
 
   const PAGE = 60;
   let search = $state("");
+  let onlyFailed = $state(false);   // "Didn't download": only the ones that failed
   let entries = $state([]);
   let complete = $state(false);   // true once the last page has been loaded
   let loading = false;
@@ -17,7 +18,7 @@
     if (!reset && complete) return;
     const mine = ++request;
     loading = true;
-    const page = await attempt(() => api.history(search.trim(), reset ? 0 : entries.length, PAGE));
+    const page = await attempt(() => api.history(search.trim(), reset ? 0 : entries.length, PAGE, onlyFailed));
     if (mine !== request) return;
     loading = false;
     loaded = true;
@@ -30,6 +31,7 @@
   let timer = 0;
   $effect(() => {
     search;
+    onlyFailed;
     app.historyVersion;
     clearTimeout(timer);
     timer = setTimeout(() => load(true), 220);
@@ -45,6 +47,10 @@
 <div class="screen" class:open={loaded && !entries.length}>
   <div class="head">
     <h1>Library</h1>
+    <span class="seg" role="group" aria-label="Which downloads to show">
+      <button aria-pressed={!onlyFailed} onclick={() => (onlyFailed = false)}>All</button>
+      <button aria-pressed={onlyFailed} onclick={() => (onlyFailed = true)}>Didn't download</button>
+    </span>
     <input class="well find" type="search" placeholder="Search title or artist" aria-label="Search the library" spellcheck="false" bind:value={search}>
   </div>
 
@@ -56,7 +62,10 @@
     </VirtualGrid>
   {:else if loaded}
     <p class="empty">
-      {#if search.trim()}
+      {#if onlyFailed && !search.trim()}
+        <strong>Nothing failed.</strong>
+        Every download in the Library made it.
+      {:else if search.trim()}
         <strong>Nothing matches.</strong>
         No download has "{search.trim()}" in its title or artist.
       {:else}

@@ -93,6 +93,13 @@ class WindowApi:
         picked = self._window.create_file_dialog(webview.FileDialog.FOLDER)
         return str(picked[0]) if picked else ""
 
+    def choose_cookies_file(self) -> str:
+        """Windows' own file picker, for a cookies.txt exported from a browser. Returns "" when cancelled."""
+        import webview
+
+        picked = self._window.create_file_dialog(webview.FileDialog.OPEN, file_types=("Cookies file (*.txt)", "All files (*.*)"))
+        return str(picked[0]) if picked else ""
+
 
 def run(debug: bool = False) -> None:
     import webview

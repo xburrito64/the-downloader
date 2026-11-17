@@ -13,7 +13,7 @@ from pathlib import Path
 
 from . import naming, tagging
 from .config import Settings
-from .errors import explain
+from .errors import SIGN_IN, explain
 from .providers.base import DownloadOptions, Item, Progress, ProviderError, Stopped
 from .store import ACTIVE, Job, Store
 
@@ -150,9 +150,11 @@ class DownloadQueue:
             _delete_partial_files(job.target)
             self._emit_job(job)
 
-    def pause_all(self) -> None:
-        for job in self._store.list(("queued", "running"), limit=100_000):
+    def pause_all(self) -> int:
+        jobs = self._store.list(("queued", "running"), limit=100_000)
+        for job in jobs:
             self.pause(job.id)
+        return len(jobs)
 
     def resume_all(self) -> None:
         for job in self._store.list(("paused",), limit=100_000):
@@ -269,6 +271,14 @@ class DownloadQueue:
                 self._emit_job(self._store.set_status(job.id, "paused"))
         except ProviderError as exc:
             self._emit_job(self._store.set_status(job.id, "failed", error=str(exc)))
+            if str(exc) == SIGN_IN:
+                # YouTube is blocking this connection for every video right now. Going on would only
+                # make the rest of the list fail one by one, so everything still waiting is paused.
+                paused = self.pause_all()
+                if paused:
+                    self._emit({"type": "notice", "kind": "problem", "text":
+                                f"YouTube is blocking downloads for now, so the {paused} waiting were paused. "
+                                "Resume them later, or add your YouTube login in Settings."})
         except Exception as exc:
             self._emit_job(self._store.set_status(job.id, "failed", error=explain(f"Unexpected error: {exc}")))
         else:

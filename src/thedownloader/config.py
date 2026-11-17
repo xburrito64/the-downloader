@@ -36,6 +36,12 @@ class Settings:
 
     spotify_client_id: str = ""
 
+    # Optional YouTube login for videos YouTube only gives to signed-in accounts (age-restricted ones).
+    # "" = off, a browser to borrow the login from ("firefox", "chrome", "edge", "brave", "opera", "opera_gx"),
+    # or "file" for a cookies.txt file exported from a browser (youtube_cookies_file).
+    youtube_login: str = ""
+    youtube_cookies_file: str = ""
+
     # Turns the game-like motion in the window into plain instant changes
     reduce_motion: bool = False
 
