@@ -1280,3 +1280,9 @@ All of them allow publishing this code under MIT. mutagen being GPL only matters
 | My email address | Yes, as the author of every commit |
 
 **Not done yet, waiting for me:** the repository is still private. Making it public is my decision, after the two open points above (first name, email in the commit history) are settled.
+
+**Settled, Nov 17, 2026.** My decisions: hide the email, and replace my first name.
+
+- The whole history was rewritten while the repository was still private. Every commit now has GitHub's private no-reply address as author (`127124460+xburrito64@users.noreply.github.com`), and future commits in this folder use it too.
+- In every commit, my first name was replaced by neutral wording ("Decisions made by me", "chosen by the owner"), and the one Windows user name in an old path was replaced too. A search of every commit finds neither the name, the email nor the user name.
+- A full backup of the old history was kept on this PC before the rewrite. The rewritten history was pushed once with force; nothing else changed in the files.
