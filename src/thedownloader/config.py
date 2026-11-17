@@ -20,6 +20,8 @@ class Settings:
     spotify_subdir: str = "Spotify"
     youtube_template: str = "{title}"
     spotify_template: str = "{artist} - {title}"
+    # A playlist or album goes into a folder with its name: <subdir>/<playlist name>/<template>
+    playlist_folders: bool = True
 
     # Last-used choices, remembered between sessions
     mode: str = "audio"  # "audio" or "video"

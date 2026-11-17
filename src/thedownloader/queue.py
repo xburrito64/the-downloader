@@ -60,9 +60,12 @@ class DownloadQueue:
 
     # ---- adding ----------------------------------------------------------
 
-    def _target_for(self, item: Item) -> str:
+    def _target_for(self, item: Item, group_title: str = "") -> str:
         template = self._settings.spotify_template if item.provider == "spotify" else self._settings.youtube_template
-        target = self._settings.output_path(item.provider) / naming.render(template, item)
+        folder = self._settings.output_path(item.provider)
+        if group_title and self._settings.playlist_folders:
+            folder = folder / naming.safe_name(group_title)  # a playlist or album gets a folder of its own
+        target = folder / naming.render(template, item)
         # Two different items can produce the same name (two videos both called "Intro").
         # The second one gets its ID added so it cannot be mistaken for the first.
         if self._store.target_used_by_other(str(target), item.provider, item.source_id):
@@ -89,7 +92,7 @@ class DownloadQueue:
                     results.append(Added(job, "already downloaded"))
                     self._emit_job(job)
                     continue
-            job = self._store.add(item, item_mode, audio_format, video_quality, self._target_for(item), group_title)
+            job = self._store.add(item, item_mode, audio_format, video_quality, self._target_for(item, group_title), group_title)
             results.append(Added(job, "queued"))
             self._emit_job(job)
         with self._wake:

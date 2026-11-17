@@ -134,6 +134,7 @@ class Matcher:
         """Possible sources for a track, best first. Raises on network errors."""
         query = f"{item.artist.split(', ')[0]} {item.title}".strip()
         found: dict[str, Candidate] = {}
+        channels: dict[str, set[str]] = {}  # the artists' channel IDs, by video
 
         def collect(results: list[dict], kind: str) -> None:
             for result in results:
@@ -141,6 +142,7 @@ class Matcher:
                 if not video_id or video_id in found:
                     continue
                 artists = [a.get("name", "") for a in result.get("artists") or [] if a]
+                channels[video_id] = {a["id"] for a in result.get("artists") or [] if a and a.get("id")}
                 title = result.get("title") or ""
                 duration = _duration(result)
                 found[video_id] = Candidate(
@@ -158,4 +160,28 @@ class Matcher:
         # Only look at plain videos when the song catalogue has no convincing result.
         if best < 0.85:
             collect(self._search(query, "videos", limit), "video")
+            self._same_channel(item, found, channels)
         return sorted(found.values(), key=lambda c: c.score, reverse=True)
+
+    def _same_channel(self, item: Item, found: dict[str, Candidate], channels: dict[str, set[str]]) -> None:
+        """Count a result as the right artist when it comes from the artist's own channel.
+
+        An artist can go by a different name on YouTube Music than on Spotify (Spotify says
+        "Flicka Roe", YouTube Music lists the same songs under "Sofia Mills"). The name then
+        looks like a cover by someone else. The channel behind the name is the same, so the
+        artist's channel is looked up and results from it are scored with the Spotify name.
+        Costs one extra search, and only when nothing convincing was found by name.
+        """
+        name = item.artist.split(", ")[0]
+        if not name or max((c.score for c in found.values()), default=0.0) >= MIN_SCORE:
+            return
+        wanted = _normalise(name)
+        own = {
+            result["browseId"]
+            for result in self._search(name, "artists", 5)
+            if result.get("browseId") and _similarity(_normalise(result.get("artist") or ""), wanted) >= 0.85
+        }
+        for video_id, candidate in found.items():
+            if own & channels.get(video_id, set()):
+                names = [name, *candidate.artist.split(", ")]
+                candidate.score = score(item, candidate.title, names, candidate.duration_seconds, candidate.kind)

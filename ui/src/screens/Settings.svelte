@@ -80,7 +80,17 @@
         <label class="field"><span>YouTube file names</span><input class="well" spellcheck="false" bind:value={draft.youtube_template}></label>
         <label class="field"><span>Spotify file names</span><input class="well" spellcheck="false" bind:value={draft.spotify_template}></label>
       </div>
-      <p class="hint">File names can use {"{title}"}, {"{artist}"}, {"{album}"}, {"{track_number}"} and {"{year}"}.</p>
+      <p class="hint">File names can use {"{title}"}, {"{artist}"}, {"{album}"} and {"{track}"} (the track number).</p>
+      <div class="field">
+        <span>Playlists and albums</span>
+        <span class="line wrap">
+          <span class="seg" role="group" aria-label="Playlists and albums">
+            <button aria-pressed={app.settings.playlist_folders} onclick={() => set("playlist_folders", true)}>Own folder</button>
+            <button aria-pressed={!app.settings.playlist_folders} onclick={() => set("playlist_folders", false)}>Loose</button>
+          </span>
+          <span class="hint">Own folder puts a playlist called Jammies into Spotify\Jammies. Single songs and videos stay loose.</span>
+        </span>
+      </div>
     </section>
 
     <section>

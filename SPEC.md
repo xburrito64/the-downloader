@@ -207,7 +207,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 5 | API | Done, Nov 16, 2026 |
 | 6 | Design concept | Direction approved Nov 16, 2026. Deep green `#063420` with the Foxglove pink accent |
 | 7 | UI v1 in its window | Done, Nov 17, 2026. Tried by hand by me |
-| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 4 done (one-post sign, tree bases, background reaches the ground). Finished-download moment built (hop and spores, mushrooms, stamp), on trial. Garbled text fixed, mushroom motion smooth |
+| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 4 done (one-post sign, tree bases, background reaches the ground). Finished-download moment built (hop and spores, mushrooms, stamp), on trial. Garbled text fixed, mushroom motion smooth. Playlist folders, better matching for renamed artists |
 | 9 | Repo hygiene | Not started (optional) |
 
 ### Nov 16, 2026: Milestone 0, spec review and planning
@@ -1204,3 +1204,20 @@ All three are repaired by undoing the wrong reading step by step, and compared w
 **2. The mushrooms grew in visible steps, like a low frame rate.** That was on purpose (pixel-style steps), but it looked choppy. The growing mushroom and the title-bar hop are now smooth. The spores and the stamp keep their short steps.
 
 **What was tested:** the app is rebuilt and contains the clean "·". The scan of all tracked files finds no garbled text.
+
+### Nov 17, 2026: Playlist folders, and songs by artists with two names
+
+I downloaded a Spotify playlist through the window, the first time Spotify login and a Spotify playlist were used through the UI. Two requests came out of it.
+
+**1. A playlist goes into a folder with its name.** Downloading the playlist "Jammies" now puts its songs into `Spotify\Jammies\`. The same goes for albums (`Spotify\<artist> - <album>\`) and YouTube playlists (`YouTube\<playlist>\`). Single songs and videos stay loose, as before.
+
+- New setting `playlist_folders`, on by default. In Settings it is "Playlists and albums: Own folder / Loose".
+- The folder name is cleaned like any file name (characters Windows does not allow become "_").
+- Unchanged: a song that is already downloaded is still skipped, wherever it is. If it is in a second playlist, it does not get a second copy in that playlist's folder unless it is picked on Home ("Have it" cards start unpicked).
+- The hint under the file names listed `{track_number}` and `{year}`, which never existed. It now lists what really works: `{title}`, `{artist}`, `{album}` and `{track}`.
+
+**2. "No matching recording was found on YouTube Music" for "Coffee Breath" by Flicka Roe.** What it means: the app searches YouTube Music for each Spotify song, and nothing there was trusted to be the same recording. Here the song was there all along. The artist goes by "Flicka Roe" on Spotify, but YouTube Music lists this song under her other name, "Sofia Mills", on the very same channel. The matcher saw a different artist name and treated it as a cover by someone else, which it never picks on its own.
+
+The fix: when nothing convincing is found by name, the matcher looks up the Spotify artist's channel on YouTube Music (one extra search) and counts results from that channel as the right artist. "Coffee Breath" by Flicka Roe now matches with full marks. A song of the same name by someone else (Lucy Gray) still matches only that artist. Restart the app, then press "Try again" on the failed row.
+
+**What was tested:** 6 new checks (4 for folders, 2 live matching checks against YouTube Music), plus the 35 queue, 43 API and 16 milestone 8 checks. All pass. The new setting is shown and saved in the browser view.
