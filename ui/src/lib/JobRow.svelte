@@ -3,7 +3,7 @@
   import Cover from "./Cover.svelte";
   import { api } from "./api.js";
   import { app, attempt, finishedAt, notify, progress } from "./state.svelte.js";
-  import { speed } from "./format.js";
+  import { day, speed } from "./format.js";
 
   let { job, onforget = null } = $props();
 
@@ -18,7 +18,7 @@
     switch (job.status) {
       case "queued": return "Waiting";
       case "paused": return "Paused";
-      case "done": return "Saved";
+      case "done": return onforget && job.finished_at ? `Saved ${day(job.finished_at)}` : "Saved";   // the Library shows the day
       case "cancelled": return "Cancelled";
       case "skipped": return "Skipped";
       case "failed": return job.error || "Failed";

@@ -1366,3 +1366,20 @@ My notes (the owner): I want an update checker and a way to update without going
 **Also**
 
 - A slip during this round: the mushroom's inner part was first named `.body`, the same name as the window's main layout. The whole screen shrank to one narrow column. Caught in the screenshots and fixed before anything was committed.
+
+### Nov 17, 2026: Download dates, and the first release (1.0.0)
+
+My answers (the owner): yes, I moved or deleted the downloaded files myself, so nothing was lost. Two more wishes: the date should be saved when something goes into the Library, and a release on GitHub. Songs that are already downloaded should get today's date. They are in `OneDrive\Homework\Music`. The date should be both visible in the Library and stored in the file itself.
+
+**The download date**
+
+- The Library already recorded when each download finished; it now shows it: "Saved Nov 17, 2026".
+- The date is also written into the song file, so it stays with the song when it moves to another folder or player. Two places: a field of its own, `DOWNLOADED` (YYYY-MM-DD), which players such as foobar2000 and MusicBee can show and sort by; and the comment, "Downloaded 2026-11-17", which almost every player shows. A comment that is already there is never overwritten. This works for Opus, MP3 and M4A/MP4 files; WebM videos cannot hold it and are left as they are.
+- New in `tagging.py`: `stamp_date` and `read_date`. The queue stamps every finished download. A failed stamp never spoils a download.
+- **The 143 songs already in `Music` (folders "Jammies" and "Special Songs") got today's date, 2026-11-17.** A full copy of the folder was made first (`%LOCALAPPDATA%\THE Downloader\music-backup-before-dates`). Each file was checked afterwards: the date reads back, and title and length are unchanged. Opus files keep the same size, because the tags fit into space the file already had.
+- **Tested:** 7 new checks on copies of a real song (Opus, plus MP3 and M4A made from it): written, read back, other tags and the cover kept, an existing comment kept, WebM skipped. All earlier checks still pass.
+
+**Release 1.0.0**
+
+- The version is now 1.0.0 (in `pyproject.toml` and `ui/package.json`). Settings shows it: "This is version 1.0.0, from 2026-11-17".
+- The release is tagged `v1.0.0` on GitHub, with notes on what the app does and how to install it. The app is installed from its source (as the README describes), so the release carries no separate program file; GitHub adds the source code as a download.

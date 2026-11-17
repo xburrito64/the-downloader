@@ -24,3 +24,9 @@ export function tint(text) {
   const hue = Math.abs(hash) % 360;
   return `linear-gradient(135deg, hsl(${hue} 55% 42%), hsl(${(hue + 50) % 360} 60% 28%))`;
 }
+
+/** A day, written out the same way everywhere: "Nov 17, 2026". Takes seconds since 1970, as the engine sends them. */
+export function day(seconds) {
+  if (!seconds) return "";
+  return new Date(seconds * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}

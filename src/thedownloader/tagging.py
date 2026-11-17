@@ -120,6 +120,92 @@ def _tag_mp3(path: Path, item: Item, cover: bytes | None) -> None:
 
 _WRITERS = {".opus": _tag_opus, ".ogg": _tag_opus, ".m4a": _tag_m4a, ".mp3": _tag_mp3}
 
+# ---- the download date ------------------------------------------------------
+# Kept inside the file, so it stays with the song when it is moved to another folder or player.
+# Two places: a field of its own called DOWNLOADED (players that show custom fields, such as
+# foobar2000 and MusicBee, can sort by it), and the comment, which almost every player shows.
+# A comment that is already there is never overwritten.
+
+DATE_FIELD = "DOWNLOADED"
+
+
+def _comment(date: str) -> str:
+    return f"Downloaded {date}"
+
+
+def _date_opus(path: Path, date: str) -> None:
+    from mutagen.oggopus import OggOpus
+    from mutagen.oggvorbis import OggVorbis
+
+    try:
+        audio = OggOpus(path)
+    except Exception:
+        audio = OggVorbis(path)
+    audio[DATE_FIELD.lower()] = date
+    if not audio.get("comment"):
+        audio["comment"] = _comment(date)
+    audio.save()
+
+
+def _date_mp4(path: Path, date: str) -> None:
+    from mutagen.mp4 import MP4, MP4FreeForm
+
+    audio = MP4(path)
+    audio[f"----:com.apple.iTunes:{DATE_FIELD}"] = [MP4FreeForm(date.encode("utf-8"))]
+    if not audio.get("\xa9cmt"):
+        audio["\xa9cmt"] = _comment(date)
+    audio.save()
+
+
+def _date_mp3(path: Path, date: str) -> None:
+    from mutagen.id3 import COMM, ID3, TXXX, ID3NoHeaderError
+
+    try:
+        tags = ID3(path)
+    except ID3NoHeaderError:
+        tags = ID3()
+    tags.setall(f"TXXX:{DATE_FIELD}", [TXXX(encoding=3, desc=DATE_FIELD, text=date)])
+    if not tags.getall("COMM"):
+        tags.add(COMM(encoding=3, lang="eng", desc="", text=_comment(date)))
+    tags.save(path)
+
+
+_DATE_WRITERS = {".opus": _date_opus, ".ogg": _date_opus, ".m4a": _date_mp4, ".mp4": _date_mp4, ".mp3": _date_mp3}
+
+
+def stamp_date(path: Path, date: str) -> bool:
+    """Write the download date (YYYY-MM-DD) into the file. False for formats that cannot hold it (webm, mkv)."""
+    writer = _DATE_WRITERS.get(path.suffix.lower())
+    if writer is None:
+        return False
+    try:
+        writer(path, date)
+    except Exception as exc:  # mutagen raises many unrelated error types
+        raise TaggingError(f"Could not write the date: {exc}") from exc
+    return True
+
+
+def read_date(path: Path) -> str:
+    """The download date written into a file, or "" if it has none."""
+    import mutagen
+
+    try:
+        audio = mutagen.File(path)
+    except Exception:
+        return ""
+    if audio is None or audio.tags is None:
+        return ""
+    tags = audio.tags
+    for key in (DATE_FIELD.lower(), f"----:com.apple.iTunes:{DATE_FIELD}", f"TXXX:{DATE_FIELD}"):
+        try:
+            value = tags[key]
+        except (KeyError, ValueError, TypeError):
+            continue
+        value = value[0] if isinstance(value, list) else value
+        value = getattr(value, "text", [value])[0] if hasattr(value, "text") else value
+        return value.decode("utf-8") if isinstance(value, bytes) else str(value)
+    return ""
+
 
 def tag(path: Path, item: Item, cover: bytes | None) -> None:
     writer = _WRITERS.get(path.suffix.lower())

@@ -179,7 +179,7 @@
     <section>
       <h2>Updates</h2>
       <p class="hint">
-        {#if version?.git}This is the version from {version.date} ({version.commit}).{:else}This copy was not installed with git, so it cannot update itself.{/if}
+        {#if version?.git}This is version {version.number}, from {version.date} ({version.commit}).{:else}This copy was not installed with git, so it cannot update itself.{/if}
       </p>
       {#if app.update?.behind}
         <div class="news">

@@ -43,12 +43,24 @@ def _git(*args: str, timeout: int = 30, folder: Path | None = None) -> str:
     return result.stdout.strip()
 
 
+def _number(folder: Path) -> str:
+    """The version number from pyproject.toml, for example "1.0.0"."""
+    import tomllib
+
+    try:
+        return tomllib.loads((folder / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    except (OSError, KeyError, ValueError):
+        return ""
+
+
 def version(folder: Path | None = None) -> dict:
-    """The installed version: the short commit name and its date."""
-    if not ((folder or project_dir()) / ".git").exists():
-        return {"commit": "", "date": "", "git": False}
+    """The installed version: its number, and the short commit name and date of this copy."""
+    folder = folder or project_dir()
+    number = _number(folder)
+    if not (folder / ".git").exists():
+        return {"number": number, "commit": "", "date": "", "git": False}
     commit, date = _git("log", "-1", "--format=%h %cs", folder=folder).split(" ", 1)
-    return {"commit": commit, "date": date, "git": True}
+    return {"number": number, "commit": commit, "date": date, "git": True}
 
 
 def check(folder: Path | None = None) -> dict:

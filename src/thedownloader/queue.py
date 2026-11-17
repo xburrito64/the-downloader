@@ -11,7 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from . import naming
+from . import naming, tagging
 from .config import Settings
 from .errors import explain
 from .providers.base import DownloadOptions, Item, Progress, ProviderError, Stopped
@@ -272,6 +272,12 @@ class DownloadQueue:
         except Exception as exc:
             self._emit_job(self._store.set_status(job.id, "failed", error=explain(f"Unexpected error: {exc}")))
         else:
+            # The download date goes into the file itself, so it travels with the song. A file
+            # format that cannot hold it (webm) or a failed write never spoils the download.
+            try:
+                tagging.stamp_date(Path(path), time.strftime("%Y-%m-%d"))
+            except (tagging.TaggingError, OSError):
+                pass
             self._emit_job(self._store.set_status(job.id, "done", file_path=str(path)))
 
 
