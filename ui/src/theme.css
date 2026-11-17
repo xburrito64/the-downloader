@@ -33,6 +33,7 @@
   --font-body: "Nunito", "Segoe UI", system-ui, sans-serif;
 
   --r-s: 8px; --r-m: 14px; --r-l: 22px;
+  --floor: 76px;   /* the strip at the bottom of every screen that belongs to the forest floor and its mushrooms */
 
   --spring: cubic-bezier(.34, 1.56, .64, 1); /* overshoots, then settles */
   --quick: 120ms;

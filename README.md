@@ -67,6 +67,10 @@ If something is missing, the app says so in **Settings**, under "What the app ne
 
 No client secret is needed. The login is stored on your PC only, in `%LOCALAPPDATA%\THE Downloader`.
 
+## Updates
+
+The app looks for a new version a few seconds after it opens, and **Settings → Updates** has a **Check for updates** button. When a new version is ready, the status bar says so. **Update and restart** closes the app, updates it in a small window of its own (git, uv and npm, which you installed above), and opens it again. Your downloads, history and settings stay as they are.
+
 ## Where things go
 
 - Downloads: `Downloads\THE Downloader\YouTube` and `...\Spotify` by default. Folder and file names can be changed in Settings.

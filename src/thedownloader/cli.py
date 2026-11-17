@@ -261,7 +261,7 @@ def cmd_resume(_args: argparse.Namespace) -> int:
 def cmd_queue(_args: argparse.Namespace) -> int:
     from .store import ACTIVE, Store
 
-    store = Store()
+    store = Store(exclusive=False)
     jobs = store.list(ACTIVE)
     store.close()
     if not jobs:
@@ -277,7 +277,7 @@ def cmd_history(args: argparse.Namespace) -> int:
 
     from .store import Store
 
-    store = Store()
+    store = Store(exclusive=False)
     jobs = store.list(("done", "failed"), search=args.search, limit=args.show, newest_first=True)
     store.close()
     if not jobs:

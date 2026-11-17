@@ -6,6 +6,7 @@ times per second and only matters while the app is open.
 """
 
 import json
+import os
 import sqlite3
 import threading
 import time
@@ -13,6 +14,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from . import paths
+from .config import ConfigError
 from .providers.base import Item
 
 ACTIVE = ("queued", "running", "paused")
@@ -101,23 +103,121 @@ def _to_job(row: sqlite3.Row) -> Job:
     )
 
 
+class AlreadyOpen(ConfigError):
+    """Another copy of the engine is using the same history."""
+
+
+def _take_lock(path: Path):
+    """Hold a lock file for as long as this store is open. Returns the open file, or raises AlreadyOpen.
+
+    Two engines on one history each run their own queue: they take each other's
+    downloads, and their writes can cross. One at a time keeps the history sound.
+    """
+    handle = open(path, "a+b")
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        raise AlreadyOpen("THE Downloader is already open. Use the window that is open, or close it first.") from None
+    return handle
+
+
 class Store:
-    def __init__(self, file: Path | None = None) -> None:
+    BACKUP_EVERY = 24 * 3600  # seconds
+
+    def __init__(self, file: Path | None = None, exclusive: bool = True) -> None:
+        """exclusive: this store runs downloads, so no other engine may use the same history meanwhile.
+        Read-only uses (listing the queue or history in the terminal) pass False."""
         file = file or (paths.data_dir() / "library.sqlite")
         file.parent.mkdir(parents=True, exist_ok=True)
+        self._file = file
+        self._lock_file = _take_lock(file.with_name(file.name + ".lock")) if exclusive else None
+        self.health = ""  # "" when fine; otherwise a sentence about what was repaired at start
         # One connection shared by all threads, guarded by a lock. The queue writes a
         # few rows per download, so this is simpler and lighter than a connection per thread.
-        self._db = sqlite3.connect(file, check_same_thread=False, isolation_level=None)
-        self._db.row_factory = sqlite3.Row
         self._lock = threading.Lock()
+        try:
+            self._open()
+        except sqlite3.DatabaseError:
+            if not exclusive:
+                raise
+            self._set_aside()  # so damaged it cannot even be opened
+        if exclusive:
+            self._heal()
+            self._backup()
+
+    def _open(self) -> None:
+        self._db = sqlite3.connect(self._file, check_same_thread=False, isolation_level=None)
+        self._db.row_factory = sqlite3.Row
         with self._lock:
             self._db.execute("PRAGMA journal_mode=WAL")  # readers never block the writer
             self._db.execute("PRAGMA synchronous=NORMAL")
             self._db.executescript(_SCHEMA)
 
+    def _check(self) -> bool:
+        try:
+            return [tuple(row) for row in self._db.execute("PRAGMA quick_check").fetchall()] == [("ok",)]
+        except sqlite3.DatabaseError:
+            return False
+
+    def _heal(self) -> None:
+        """Check the history at every start. A damaged index is rebuilt from the rows themselves;
+        if the rows are damaged too, the file is set aside (never deleted) and a fresh history starts."""
+        if self._check():
+            return
+        try:
+            with self._lock:
+                self._db.execute("REINDEX")
+        except sqlite3.DatabaseError:
+            pass
+        if self._check():
+            self.health = "The download history had a damaged index. It was repaired; nothing was lost."
+            return
+        self._db.close()
+        self._set_aside()
+
+    def _set_aside(self) -> None:
+        """Move a damaged history out of the way (it is kept, never deleted) and start a fresh one."""
+        try:
+            self._db.close()  # Windows cannot move a file that is still open
+        except (AttributeError, sqlite3.Error):
+            pass
+        aside = self._file.with_name(f"{self._file.stem}-damaged-{time.strftime('%Y%m%d-%H%M%S')}{self._file.suffix}")
+        for suffix in ("", "-wal", "-shm"):
+            source = Path(str(self._file) + suffix)
+            if source.exists():
+                os.replace(source, Path(str(aside) + suffix))
+        self._open()
+        self.health = (f"The download history was damaged and could not be repaired, so a new one was started. "
+                       f"The old file was kept as {aside.name}. Your downloaded files are not affected.")
+
+    def _backup(self) -> None:
+        """Keep a copy of the history from up to a day ago, next to it."""
+        target = self._file.with_name(f"{self._file.stem}.backup{self._file.suffix}")
+        try:
+            if target.exists() and time.time() - target.stat().st_mtime < self.BACKUP_EVERY:
+                return
+            copy = sqlite3.connect(target)
+            with self._lock:
+                self._db.backup(copy)
+            copy.close()
+        except (OSError, sqlite3.Error):
+            pass  # a missing backup must never stop the app
+
     def close(self) -> None:
         with self._lock:
             self._db.close()
+        if self._lock_file is not None:
+            self._lock_file.close()
+            self._lock_file = None
 
     # ---- writing ---------------------------------------------------------
 
@@ -140,8 +240,8 @@ class Store:
             row = self._db.execute(
                 "UPDATE jobs SET status = 'running', error = '' WHERE id = "
                 "(SELECT id FROM jobs WHERE status = 'queued' ORDER BY id LIMIT 1) RETURNING *"
-            ).fetchone()
-        return _to_job(row) if row else None
+            ).fetchall()  # read to the end, so the statement finishes and the change is committed at once
+        return _to_job(row[0]) if row else None
 
     def set_status(self, job_id: int, status: str, error: str = "", file_path: str | None = None,
                    only_if: tuple[str, ...] | None = None) -> Job | None:
@@ -158,8 +258,8 @@ class Store:
             query += f" AND status IN ({','.join('?' * len(only_if))})"
             values.extend(only_if)
         with self._lock:
-            row = self._db.execute(query + " RETURNING *", values).fetchone()
-        return _to_job(row) if row else None
+            row = self._db.execute(query + " RETURNING *", values).fetchall()
+        return _to_job(row[0]) if row else None
 
     def set_item(self, job_id: int, item: Item) -> None:
         """Store a changed item, for example one with a match chosen by hand."""

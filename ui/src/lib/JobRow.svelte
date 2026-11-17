@@ -96,16 +96,22 @@
     position: relative; margin-right: 10px; padding: 3px 11px 5px; font: 400 22px/1 var(--font-display); color: var(--ink); white-space: nowrap;
     background: var(--wood); box-shadow: 0 0 0 3px var(--wood-dark), inset 0 3px 0 var(--wood-lit); transform: rotate(-7deg);
   }
-  .stamp.fresh { animation: stamp 260ms steps(4) both; }
-  @keyframes stamp { from { transform: scale(2.2) rotate(-16deg); opacity: 0; } }
+  /* Smooth, not in steps (owner feedback, Nov 17, 2026): the plank drops in large and tilted, overshoots a little and settles. */
+  .stamp.fresh { animation: stamp 460ms cubic-bezier(.2, .8, .3, 1) both; will-change: transform; }
+  @keyframes stamp {
+    0% { transform: scale(2.1) rotate(-20deg); opacity: 0; }
+    45% { transform: scale(.9) rotate(-5deg); opacity: 1; }
+    72% { transform: scale(1.05) rotate(-8deg); }
+    100% { transform: rotate(-7deg); }
+  }
   .stamp i { position: absolute; width: 6px; height: 6px; background: var(--accent); opacity: 0; }
-  .stamp.fresh i { animation: spark 420ms steps(4) 230ms; }
-  .stamp i:nth-child(1) { left: -3px; top: -3px; --dx: -15px; --dy: -12px; }
-  .stamp i:nth-child(2) { right: -3px; top: -3px; --dx: 15px; --dy: -12px; }
-  .stamp i:nth-child(3) { left: -3px; bottom: -3px; --dx: -15px; --dy: 12px; }
-  .stamp i:nth-child(4) { right: -3px; bottom: -3px; --dx: 15px; --dy: 12px; }
-  @keyframes spark { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
-  .row.thud { animation: thud 200ms steps(3) 220ms; }
-  @keyframes thud { 50% { transform: translateY(3px); } }
+  .stamp.fresh i { animation: spark 560ms ease-out 200ms; }
+  .stamp i:nth-child(1) { left: -3px; top: -3px; --dx: -16px; --dy: -13px; }
+  .stamp i:nth-child(2) { right: -3px; top: -3px; --dx: 16px; --dy: -13px; }
+  .stamp i:nth-child(3) { left: -3px; bottom: -3px; --dx: -16px; --dy: 13px; }
+  .stamp i:nth-child(4) { right: -3px; bottom: -3px; --dx: 16px; --dy: 13px; }
+  @keyframes spark { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.5); } }
+  .row.thud { animation: thud 320ms cubic-bezier(.3, .6, .4, 1) 190ms; }
+  @keyframes thud { 35% { transform: translateY(3px); } }
   .quiet { background: var(--panel); color: var(--ink-soft); }
 </style>

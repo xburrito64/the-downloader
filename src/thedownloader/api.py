@@ -11,6 +11,7 @@ half a second more startup for the same handful of routes.
 import asyncio
 import hmac
 import json
+import os
 import re
 import subprocess
 import threading
@@ -27,7 +28,7 @@ from starlette.responses import FileResponse, JSONResponse, Response, StreamingR
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from . import APP_NAME, config, covers, spotify_auth, startup
+from . import APP_NAME, config, covers, spotify_auth, startup, updater
 from .providers.base import ProviderError, Resolved
 from .queue import DownloadQueue
 from .store import ACTIVE, Store
@@ -40,6 +41,20 @@ _MAX_REMEMBERED_LINKS = 20  # previews kept in memory so the UI can queue them b
 _HEARTBEAT_SECONDS = 20
 _MAX_BODY_BYTES = 1_000_000
 _SETTING_TYPES = {f.name: f.type for f in fields(config.Settings)}
+
+
+_VERSION: dict | None = None
+
+
+def _version() -> dict:
+    """The installed version, read once: it cannot change while the app runs."""
+    global _VERSION
+    if _VERSION is None:
+        try:
+            _VERSION = updater.version()
+        except updater.UpdateError:
+            _VERSION = {"commit": "", "date": "", "git": False}
+    return _VERSION
 
 
 class ApiError(Exception):
@@ -258,6 +273,8 @@ def create_app(state: AppState) -> Starlette:
             "spotify_logged_in": spotify_auth.is_logged_in(),
             "spotify_login_state": state.spotify_login_state,
             "spotify_redirect_uri": spotify_auth.REDIRECT_URI,
+            "version": _version(),
+            "library_note": state.store.health,
         }
 
     def get_settings(_request: Request, _body: dict):
@@ -448,6 +465,20 @@ def create_app(state: AppState) -> Starlette:
         webbrowser.open(f"https://music.youtube.com/watch?v={video_id}")
         return {"ok": True}
 
+    def update_check(_request: Request, _body: dict):
+        try:
+            return updater.check()
+        except updater.UpdateError as exc:
+            raise ApiError(422, str(exc)) from None
+
+    def update_start(_request: Request, _body: dict):
+        """Starts the updater in its own window. The UI closes the app right after this answer."""
+        try:
+            updater.start_update(os.getpid())
+        except updater.UpdateError as exc:
+            raise ApiError(422, str(exc)) from None
+        return {"ok": True}
+
     # ---- history ---------------------------------------------------------
 
     def history(request: Request, _body: dict):
@@ -547,6 +578,8 @@ def create_app(state: AppState) -> Starlette:
         route("/api/jobs/{job_id:int}/rematch", "POST", job_rematch, with_body=True),  # before the general one below
         route("/api/jobs/{job_id:int}/{action}", "POST", job_action),
         route("/api/listen", "POST", listen, with_body=True),
+        route("/api/update", "GET", update_check),
+        route("/api/update", "POST", update_start),
         route("/api/history", "GET", history),
         route("/api/history/{job_id:int}", "DELETE", forget),
         Route("/api/events", events, methods=["GET"]),

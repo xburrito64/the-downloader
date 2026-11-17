@@ -144,16 +144,29 @@ def main() -> None:
     print(out)
 
 
-def save_chosen(name: str) -> None:
-    """The chosen mascot on its own, 16 by 16 with a see-through background, for the title bar."""
+def save_chosen(name: str, scale: int = 8) -> None:
+    """The chosen mascot on its own, with a see-through background, for the window.
+
+    Saved already enlarged (8 times, so 128 by 128) with hard pixel edges. The window shows
+    it at 32 pixels with normal smoothing: at rest each art pixel lands exactly on 2 by 2
+    screen pixels and looks crisp, and while it moves or squashes the smoothing keeps the
+    motion fluid. From a 16-pixel file shown "pixelated", every frame of a move snapped to
+    whole pixels and looked jerky (owner feedback, Nov 17, 2026).
+    """
     rows = MASCOTS[name].strip("\n").split("\n")
-    data = b"".join(b"\x00" + b"".join(rgb(LETTERS[letter]) + b"\xff" if letter != "." else b"\x00\x00\x00\x00" for letter in line) for line in rows)
+    size = 16 * scale
+    clear = b"\x00\x00\x00\x00"
+    lines = []
+    for line in rows:
+        row = b"".join((rgb(LETTERS[letter]) + b"\xff" if letter != "." else clear) * scale for letter in line)
+        lines.extend([b"\x00" + row] * scale)
+    data = b"".join(lines)
 
     def chunk(kind: bytes, body: bytes) -> bytes:
         return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
 
     out = Path(__file__).resolve().parents[1] / "ui" / "src" / "art" / "mascot.png"
-    out.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 16, 16, 8, 6, 0, 0, 0))
+    out.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0))
                     + chunk(b"IDAT", zlib.compress(data, 9)) + chunk(b"IEND", b""))
     print(out)
 

@@ -46,6 +46,8 @@ export const api = {
   matches: (id) => call("GET", `/api/jobs/${id}/matches`),
   rematch: (id, videoId) => call("POST", `/api/jobs/${id}/rematch`, { video_id: videoId }),
   listen: (videoId) => call("POST", "/api/listen", { video_id: videoId }),
+  updateCheck: () => call("GET", "/api/update"),
+  updateStart: () => call("POST", "/api/update"),
   history: (search, offset, limit) =>
     call("GET", `/api/history?search=${encodeURIComponent(search)}&offset=${offset}&limit=${limit}`),
   forget: (id) => call("DELETE", `/api/history/${id}`),

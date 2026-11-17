@@ -24,7 +24,7 @@
   });
 </script>
 
-<div class="viewport" bind:this={viewport} bind:clientWidth={width} bind:clientHeight={height} onscroll={scrolled}>
+<div class="viewport fade-out" bind:this={viewport} bind:clientWidth={width} bind:clientHeight={height} onscroll={scrolled}>
   <div class="track" style:height="{Math.max(0, rows * rowHeight - gap)}px">
     <div
       class="rows"

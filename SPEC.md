@@ -1320,3 +1320,49 @@ Writing a shortcut with an app ID needs a Windows interface that Python cannot r
 - Opening the Start menu shortcut started the app in 3.3 seconds, with no terminal. The window has its icon, and the taskbar button shows the mushroom.
 - The window closed normally when asked to.
 - The icon is included when the project is packaged.
+
+### Nov 17, 2026: Updates from inside the app, smooth motion, living mushrooms, and a safer history
+
+My notes (the owner): I want an update checker and a way to update without going to GitHub. The "Got it" stamp and the title-bar mushroom look laggy; I want them buttery smooth, not pixel-stepped. The mushrooms on the floor stand completely still and should move a little. And when the Queue or Library is full, the mushrooms are only awkwardly visible in the gaps between rows.
+
+**1. Updates from inside the app**
+
+- New `updater.py`. The app is a git copy of the GitHub repository, so checking means asking GitHub (`git fetch`) whether it has commits this copy does not.
+- **Settings → Updates** shows the installed version (date and commit), a **Check for updates** button, and, when something is new, the list of changes and **Update and restart**. The app also checks quietly 8 seconds after it opens; the status bar then shows "New version ready", which leads to Settings.
+- Updating cannot happen while the app runs, because Windows will not replace files in use. So the app writes a small PowerShell script, starts it in its own window and closes. The script waits for the app to be gone, runs `git pull --ff-only`, `uv sync`, `npm ci` and `npm run build`, then opens the app again. If a step fails, its window stays open and says which one; downloads, history and settings are never touched.
+- It refuses to update a copy with its own local changes or commits, and says why.
+- New engine routes: `GET /api/update` (check) and `POST /api/update` (start). `/api/status` now includes the version.
+- **Tested:** a copy of the project set back three versions was found to be 3 changes behind, with the right list of changes. The update script then brought it to the newest version in 16 seconds, rebuilt the screens, and opened that copy's app again.
+
+**2. Smooth motion**
+
+- The cause of the jerky look was the pixel-art setting itself: a 16-pixel picture shown "pixelated" snaps to whole pixels in every frame while it moves. The mascot is now saved already enlarged 8 times (128 by 128, `design/make_mascots.py`) and shown at 32 pixels with normal smoothing. At rest it looks exactly as crisp; in motion it glides.
+- The title-bar hop is new: a crouch, a stretch upward, a squashed landing and a settle, 640 ms. The spores drift out and sink as they fade.
+- The "Got it" plank drops in large and tilted, overshoots a little and settles (460 ms), with soft sparks and a gentle dip of the row. No animation moves in steps any more.
+- **Measured** in the real window on a 144 Hz screen while 10 downloads finished: every frame arrived on time (6.9 ms typical, none slower than 21 ms, none dropped).
+
+**3. Living mushrooms**
+
+- The mushrooms take turns: every 2 to 4 seconds one of them strolls a short way along the path with a little waddle, hops, or blinks. Each has its own stretch of path, which points toward the middle so none walks off the edge.
+- Nothing moves while another window is in front, and with motion set to Reduced they stand still.
+- A first version where all of them moved all the time looked fine, but a window that always moves never gets to rest. Taking turns keeps the app as light as before. **Measured:** with 10 mushrooms, 0.17 processor-seconds in 20 seconds, exactly the same as with no mushrooms at all. (A first measurement showed 14% of a core; that turned out to be the measuring loop itself, which made the window draw every frame.)
+
+**4. A floor strip of their own**
+
+- Every screen now keeps a 76-pixel strip at the bottom for the forest floor. No content goes there, the veil stops above it so the path shows plainly, and the mushrooms stand in it, in front of everything. Lists in the Queue, Library, Home and Settings fade out just above it instead of ending in a hard cut.
+- This costs 62 pixels of list height. Other ideas, if this does not feel right: mushrooms only on empty screens; mushrooms walking along the top of the status bar; or a floor strip that only appears when the list is short enough.
+
+**5. The download history was damaged, and the app now protects it**
+
+- During this round's tests, the history database (`library.sqlite`) reported itself as damaged. A copy was saved first (`library-damaged-20261117-121519` in the data folder). The rows were intact; one search index had 119 entries for rows that no longer existed. `REINDEX` repaired it, and it passes SQLite's integrity check again.
+- The history held only 1 entry by then. Old rows were still readable from unused parts of the file: 22 finished downloads from the "Softboy Vibes." playlist. They were not put back, because their files are no longer in the download folder (nor is "PET THE PEEPO.opus" from before). The app itself never deletes finished files, except "Other match" replacing one, so this is a question for me: were they moved or deleted by hand?
+- The likely cause: several copies of the engine used the same history at the same time (my open app, the test scripts, and the test copy that the updater reopened). Each runs its own queue and they wrote over each other's work. Three protections were added to `store.py`:
+  - **One engine at a time.** The engine holds a lock file while it runs. A second copy (a second window, a test script, the terminal `download` command) is refused with "THE Downloader is already open". Read-only terminal commands (`queue`, `history`) still work.
+  - **Self-repair at start.** The history is checked every time the app opens. A damaged index is rebuilt; a history too damaged to repair is set aside (kept, never deleted) and a new one starts. The status bar says what happened.
+  - **Daily backup.** `library.backup.sqlite` is a copy from at most a day ago.
+- Writes that report back their result (`RETURNING`) are now read to the end, so each change is committed at once.
+- **Tested:** 5 new checks (a second engine is refused, reading still works, the backup exists, the next engine may open after the first closes, a wrecked file is set aside and a fresh history starts). The 35 queue, 43 API and 16 + 6 milestone 8 checks still pass.
+
+**Also**
+
+- A slip during this round: the mushroom's inner part was first named `.body`, the same name as the window's main layout. The whole screen shrank to one narrow column. Caught in the screenshots and fixed before anything was committed.

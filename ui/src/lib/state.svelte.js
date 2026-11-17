@@ -13,6 +13,8 @@ export const app = $state({
   finished: 0,         // downloads finished since the app opened; each one plays the finish moment
   sprouts: [],         // mushrooms on the forest floor, one per finished download this session
   matchFor: null,      // the Spotify download whose "Pick another match" window is open
+  update: null,        // what the last look at GitHub found: { behind, changes, can_update, reason, ... }
+  updateChecking: false,
   loadError: "",
 });
 
@@ -50,7 +52,12 @@ function celebrate(job) {
   finishedAt.set(job.id, Date.now());
   app.finished++;
   // Each one grows a mushroom somewhere on the floor. The oldest goes once there are too many.
-  app.sprouts.push({ id: job.id, left: 2 + Math.random() * 94, lift: Math.floor(Math.random() * 6) * 3 });
+  // Each one gets its own stretch of path to wander along: how far, and which way (back toward the middle).
+  const left = 3 + Math.random() * 92;
+  app.sprouts.push({
+    id: job.id, left, lift: Math.floor(Math.random() * 6) * 3,
+    range: Math.round((30 + Math.random() * 90) * (left > 50 ? -1 : 1)),
+  });
   if (app.sprouts.length > MAX_SPROUTS) app.sprouts.shift();
 }
 
@@ -75,6 +82,19 @@ export function addJob(job) {
 
 export function clearFinished() {
   app.jobs = app.jobs.filter((job) => ACTIVE.includes(job.status));
+}
+
+/** Ask GitHub whether there is a newer version. quiet: a failure is not shown (used for the check at start). */
+export async function checkForUpdate(quiet = false) {
+  if (app.updateChecking) return;
+  app.updateChecking = true;
+  try {
+    app.update = await api.updateCheck();
+  } catch (error) {
+    if (!quiet) notify(error.message, "problem");
+  } finally {
+    app.updateChecking = false;
+  }
 }
 
 export async function refreshStatus() {
@@ -104,6 +124,7 @@ export async function start() {
     app.settings = settings;
     app.jobs = jobs;
     applyMotion();
+    if (status.library_note) notify(status.library_note, "problem");
   } catch (error) {
     app.loadError = error.message;
     return;
@@ -118,4 +139,6 @@ export async function start() {
     },
     reconnected: () => attempt(reloadQueue),
   });
+  // One quiet look for a new version, a little after start so it never slows the opening down.
+  setTimeout(() => checkForUpdate(true), 8000);
 }

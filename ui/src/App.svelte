@@ -41,12 +41,65 @@
     setTimeout(() => batch === sporeBatch && (spores = []), 1000);
   });
 
+  // The mushrooms on the floor take turns: every few seconds one of them strolls a little way, hops or blinks.
+  // In between nothing moves at all, so the window has nothing to redraw. (When they all moved all the time,
+  // the window used about 14% of a processor core just for that.)
+  let floorEl = $state();
+  function replay(element, name, ms) {
+    element.classList.remove(name);
+    void element.offsetWidth;          // start the animation again from the beginning
+    element.classList.add(name);
+    setTimeout(() => element.classList.remove(name), ms);
+  }
+  function nextAct() {
+    const walkers = floorEl?.querySelectorAll(".walker");
+    const still = document.documentElement.classList.contains("resting") || app.settings?.reduce_motion;
+    if (!walkers?.length || still) return;
+    const walker = walkers[Math.floor(Math.random() * walkers.length)];
+    const mush = walker.firstElementChild;
+    const roll = Math.random();
+    if (roll < 0.6) {
+      // Anywhere between its spot and the end of its stretch (which points toward the middle, so none walks off).
+      const range = Number(walker.dataset.range) || 60;
+      const from = Number(walker.dataset.x) || 0;
+      let to = Math.round(Math.random() * range);
+      if (Math.abs(to - from) < 18) to = Math.abs(from) > Math.abs(range) / 2 ? 0 : range;
+      const seconds = Math.min(3.2, 0.9 + Math.abs(to - from) / 40);
+      walker.style.transition = `transform ${seconds}s ease-in-out`;
+      walker.style.transform = `translateX(${to}px)`;
+      walker.dataset.x = String(to);
+      replay(mush, "walking", seconds * 1000);
+    } else if (roll < 0.85) {
+      replay(mush, "hopping", 600);
+    } else {
+      replay(mush, "blinking", 170);
+    }
+  }
+  $effect(() => {
+    let timer = 0;
+    const tick = () => {
+      nextAct();
+      timer = setTimeout(tick, 1800 + Math.random() * 2400);
+    };
+    timer = setTimeout(tick, 2500);
+    return () => clearTimeout(timer);
+  });
+
   onMount(() => {
     start();
     const ready = () => (inWindow = Boolean(windowApi()));
     ready();
     window.addEventListener("pywebviewready", ready);
-    return () => window.removeEventListener("pywebviewready", ready);
+    // While another window is in front, the mushrooms stand still, so the app uses nothing then.
+    const rest = () => document.documentElement.classList.toggle("resting", document.hidden || !document.hasFocus());
+    rest();
+    for (const name of ["focus", "blur"]) window.addEventListener(name, rest);
+    document.addEventListener("visibilitychange", rest);
+    return () => {
+      window.removeEventListener("pywebviewready", ready);
+      for (const name of ["focus", "blur"]) window.removeEventListener(name, rest);
+      document.removeEventListener("visibilitychange", rest);
+    };
   });
 
   async function toggleMaximize() {
@@ -106,10 +159,14 @@
     <main>
       <div class="veil" aria-hidden="true"></div>
       <!-- The finish moment, part 2: a mushroom grows on the forest floor for each finished download.
-           It stands on the picture's grass, 72 to 90 screen pixels above the window's bottom edge. -->
-      <div class="floor" aria-hidden="true">
+           The floor is a strip of its own at the bottom of every screen, where no content goes, so the
+           mushrooms are always in plain view. They stand on the picture's dirt path, 60 to 75 screen
+           pixels above the window's bottom edge, and wander along it. -->
+      <div class="floor" aria-hidden="true" bind:this={floorEl}>
         {#each app.sprouts as sprout (sprout.id)}
-          <img class="sprout" src={mascot} alt="" draggable="false" style:left="{sprout.left}%" style:bottom="{72 + sprout.lift - footHeight}px">
+          <div class="walker" style:left="{sprout.left}%" style:bottom="{60 + sprout.lift - footHeight}px" data-range={sprout.range}>
+            <div class="mush"><img class="sprout" src={mascot} alt="" draggable="false"></div>
+          </div>
         {/each}
       </div>
       {#if app.loadError}
@@ -138,7 +195,11 @@
         <b class="good">Ready.</b> {waiting ? `${waiting} in the queue.` : "Everything it needs is installed."}
       {/if}
     </span>
-    <span>{ytdlp ? `yt-dlp ${ytdlp}` : ""}</span>
+    {#if app.update?.can_update}
+      <button class="fresh" onclick={() => (app.screen = "settings")}>New version ready</button>
+    {:else}
+      <span>{ytdlp ? `yt-dlp ${ytdlp}` : ""}</span>
+    {/if}
   </footer>
 
   {#if app.matchFor}
@@ -165,19 +226,57 @@
   .titlebar { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; background: var(--panel-glass); }
   .titlebar h2 { font: 400 26px/1 var(--font-display); letter-spacing: .5px; flex: 1; pointer-events: none; }
   .puff { position: relative; flex: none; width: 32px; height: 26px; pointer-events: none; }
-  .mascot { position: absolute; left: 0; bottom: -2px; width: 32px; height: 32px; image-rendering: pixelated; transform-origin: bottom; }
-  .mascot:global(.hop) { animation: hop 520ms ease-out; }
-  @keyframes hop { 30% { transform: translateY(-8px) scaleY(1.08); } 60% { transform: scaleY(.88); } 78% { transform: translateY(-3px); } }
-  .puff i { position: absolute; left: 14px; top: 8px; width: 4px; height: 4px; background: var(--accent); z-index: 7; animation: spore 760ms steps(8) 120ms both; }
+  /* The mascot file is the pixel art enlarged 8 times. Shown at 32 pixels with normal smoothing it is crisp at
+     rest and moves fluidly; "pixelated" would snap every frame of a move to whole pixels and look jerky. */
+  .mascot { position: absolute; left: 0; bottom: -2px; width: 32px; height: 32px; transform-origin: 50% 100%; will-change: transform; }
+  .mascot:global(.hop) { animation: hop 640ms cubic-bezier(.3, .7, .4, 1); }
+  @keyframes hop {
+    0% { transform: none; }
+    16% { transform: scale(1.12, .84); }                 /* crouch */
+    44% { transform: translateY(-11px) scale(.92, 1.1); } /* up, stretched */
+    70% { transform: scale(1.1, .88); }                  /* lands, squashed */
+    86% { transform: scale(.97, 1.03); }
+    100% { transform: none; }
+  }
+  .puff i { position: absolute; left: 14px; top: 8px; width: 4px; height: 4px; background: var(--accent); z-index: 7; animation: spore 900ms ease-out 140ms both; }
   .puff i.pale { background: var(--ink); }
-  @keyframes spore { from { transform: none; opacity: 1; } to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+  @keyframes spore {
+    0% { transform: none; opacity: 1; }
+    55% { transform: translate(var(--dx), var(--dy)); opacity: 1; }
+    100% { transform: translate(calc(var(--dx) * 1.15), calc(var(--dy) + 8px)); opacity: 0; }  /* drifts down as it fades */
+  }
 
-  /* behind a screen: the veil that keeps text readable, then the floor where mushrooms grow, then the screen itself */
+  /* Behind a screen: the veil that keeps text readable, then the screen itself. The veil stops above the floor strip,
+     so the forest floor shows plainly there. In front of everything: the floor with its mushrooms. */
   main { position: relative; }
-  .veil { position: absolute; inset: 0; background: var(--veil); transition: background-color var(--settle); }
-  main:has(> :global(.screen.open)) .veil { background: linear-gradient(to bottom, var(--veil), var(--veil-thin) 70%); }
-  .floor { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-  .sprout { position: absolute; width: 32px; height: 32px; margin-left: -16px; image-rendering: pixelated; transform-origin: bottom; animation: sprout 560ms ease-out both; }
+  .veil {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, var(--veil) calc(100% - var(--floor) - 30px), transparent calc(100% - var(--floor) + 10px));
+  }
+  main:has(> :global(.screen.open)) .veil { background: linear-gradient(to bottom, var(--veil), var(--veil-thin) 70%, transparent calc(100% - var(--floor) + 10px)); }
+  .floor { position: absolute; left: 0; right: 0; bottom: 0; height: var(--floor); overflow: hidden; pointer-events: none; z-index: 2; }
+
+  /* A mushroom on the floor. The walker carries its position along the path; the mush inside waddles, hops or blinks. */
+  .walker { position: absolute; width: 32px; height: 32px; margin-left: -16px; }
+  .mush { position: relative; width: 32px; height: 32px; transform-origin: 50% 100%; }
+  .mush:global(.walking) { animation: waddle 380ms ease-in-out infinite; }
+  @keyframes waddle { 0%, 100% { transform: rotate(-3deg); } 50% { transform: translateY(-2px) rotate(3deg); } }
+  .mush:global(.hopping) { animation: shroomhop 600ms cubic-bezier(.3, .7, .4, 1); }
+  @keyframes shroomhop {
+    16% { transform: scale(1.1, .86); }
+    44% { transform: translateY(-9px) scale(.94, 1.08); }
+    70% { transform: scale(1.08, .9); }
+  }
+  .mush::after { /* closed eyes: cream lids with a dark lash line, over the two eye pixels */
+    content: ""; position: absolute; inset: 0; opacity: 0;
+    background:
+      linear-gradient(var(--edge), var(--edge)) 10px 21px / 2px 1px no-repeat, linear-gradient(var(--edge), var(--edge)) 20px 21px / 2px 1px no-repeat,
+      linear-gradient(var(--ink), var(--ink)) 10px 18px / 2px 4px no-repeat, linear-gradient(var(--ink), var(--ink)) 20px 18px / 2px 4px no-repeat;
+  }
+  .mush:global(.blinking)::after { opacity: 1; }
+  .sprout { display: block; width: 32px; height: 32px; transform-origin: 50% 100%; animation: sprout 560ms ease-out both; }
+  /* Reduced motion: a walk that is under way just stops (the general rule only shortens animations). */
+  :global(.calm) .mush { animation: none !important; }
   /* smooth, not in steps: stepped growth looked like a low frame rate (owner feedback, Nov 17, 2026) */
   @keyframes sprout { 0% { transform: scaleY(0); } 55% { transform: scaleY(1.15) scaleX(.9); } 78% { transform: scaleY(.94) scaleX(1.05); } 100% { transform: none; } }
   .winkeys { display: flex; gap: 8px; }
@@ -207,6 +306,7 @@
   .statusbar b { font-weight: 800; color: var(--ink); }
   .statusbar b.good { color: var(--good); }
   .statusbar b.problem { color: var(--rose); }
+  .fresh { border: 0; cursor: pointer; padding: 0 10px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: 800 13px/22px var(--font-body); }
 
   .grip { position: absolute; right: 0; bottom: 0; width: 22px; height: 22px; cursor: nwse-resize; z-index: 6; touch-action: none;
     background: linear-gradient(135deg, transparent 0 55%, var(--ink-soft) 55% 62%, transparent 62% 72%, var(--ink-soft) 72% 79%, transparent 79%); opacity: .6; }

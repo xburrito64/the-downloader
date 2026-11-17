@@ -1,6 +1,21 @@
 <script>
   import { api, windowApi } from "../lib/api.js";
-  import { app, attempt, notify, refreshStatus, saveSettings } from "../lib/state.svelte.js";
+  import { app, attempt, checkForUpdate, notify, refreshStatus, saveSettings } from "../lib/state.svelte.js";
+
+  let updating = $state(false);
+  const version = $derived(app.status?.version);
+
+  async function update() {
+    updating = true;
+    const started = await attempt(api.updateStart);
+    if (!started) {
+      updating = false;
+      return;
+    }
+    // The updater runs in its own window once the app is closed, then opens the app again.
+    notify("Updating. The app closes now and opens again by itself when it is done.", "good");
+    setTimeout(() => windowApi()?.close(), 1200);
+  }
 
   const textKeys = ["output_dir", "youtube_subdir", "spotify_subdir", "youtube_template", "spotify_template", "spotify_client_id"];
   let draft = $state(Object.fromEntries(textKeys.map((key) => [key, app.settings[key]])));
@@ -162,6 +177,35 @@
     </section>
 
     <section>
+      <h2>Updates</h2>
+      <p class="hint">
+        {#if version?.git}This is the version from {version.date} ({version.commit}).{:else}This copy was not installed with git, so it cannot update itself.{/if}
+      </p>
+      {#if app.update?.behind}
+        <div class="news">
+          <b>{app.update.behind === 1 ? "A new version is ready" : `A new version is ready, with ${app.update.behind} changes`}</b>
+          <ul>
+            {#each app.update.changes.slice(0, 8) as change, i (i)}<li>{change}</li>{/each}
+          </ul>
+          {#if app.update.changes.length > 8}<p class="hint">And {app.update.changes.length - 8} more.</p>{/if}
+          {#if app.update.can_update}
+            <div class="line wrap">
+              <button class="big small" onclick={update} disabled={updating || !windowApi()}>{updating ? "Starting the update" : "Update and restart"}</button>
+              <span class="hint">The app closes, updates in a small window of its own, and opens again. Your downloads and settings stay.</span>
+            </div>
+          {:else}
+            <p class="hint">{app.update.reason}</p>
+          {/if}
+        </div>
+      {:else if app.update}
+        <p class="hint"><b class="ok">You have the newest version.</b></p>
+      {/if}
+      {#if version?.git}
+        <div class="line"><button class="key" onclick={() => checkForUpdate()} disabled={app.updateChecking}>{app.updateChecking ? "Looking on GitHub" : "Check for updates"}</button></div>
+      {/if}
+    </section>
+
+    <section>
       <h2>What the app needs</h2>
       <ul class="checks">
         {#each app.status?.checks ?? [] as check (check.name)}
@@ -177,7 +221,7 @@
 </div>
 
 <style>
-  .scroll { overflow-y: auto; min-height: 0; flex: 1; display: grid; gap: 26px; align-content: start; padding: 2px 14px 16px 2px; }
+  .scroll { mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent); overflow-y: auto; min-height: 0; flex: 1; display: grid; gap: 26px; align-content: start; padding: 2px 14px 16px 2px; }
   section { display: grid; gap: 12px; max-width: 760px; }
   h2 { font: 400 28px/1 var(--font-display); letter-spacing: .5px; }
   .field { display: grid; gap: 5px; min-width: 0; }
@@ -195,4 +239,8 @@
   .checks strong { color: var(--ink); }
   .checks em { font-style: normal; color: var(--ink); }
   .head .big { font-size: 24px; padding: 8px 18px 10px; box-shadow: 0 5px 0 var(--edge); }
+  .big.small { font-size: 24px; padding: 8px 18px 10px; }
+  .news { display: grid; gap: 10px; background: var(--raised); border-radius: var(--r-m); padding: 14px 16px; box-shadow: 0 4px 0 var(--edge); }
+  .news b { font: 400 24px/1.1 var(--font-display); color: var(--accent); }
+  .news ul { margin: 0; padding-left: 20px; display: grid; gap: 2px; font-size: 14px; color: var(--ink-soft); }
 </style>

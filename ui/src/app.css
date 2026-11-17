@@ -48,7 +48,7 @@ input { user-select: text; }
 .well:focus { border-color: var(--accent); outline: none; }
 
 /* every screen */
-.screen { padding: 22px 20px 14px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; min-height: 0; height: 100%; }
+.screen { padding: 22px 20px var(--floor) 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; min-height: 0; height: 100%; }
 /* .screen.open marks an empty screen: App.svelte thins the veil behind it so the forest shows */
 .head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding-right: 10px; }
 .head h1 { font: 400 40px/1 var(--font-display); letter-spacing: .5px; margin-right: auto; }
@@ -58,7 +58,7 @@ input { user-select: text; }
 .empty {
   --post: linear-gradient(to right, var(--wood-lit) 0 6px, var(--wood) 6px 21px, var(--wood-dark) 21px 30px);
   --tuft: linear-gradient(var(--grass), var(--grass));
-  align-self: flex-start; position: relative; max-width: 46ch; margin: auto 0 80px 9px; padding: 15px 21px 18px; color: var(--ink);
+  align-self: flex-start; position: relative; max-width: 46ch; margin: auto 0 18px 9px; padding: 15px 21px 18px; color: var(--ink);
   background: repeating-linear-gradient(to bottom, var(--wood) 0 30px, var(--wood-dark) 30px 33px);   /* planks */
   box-shadow: 0 0 0 3px var(--wood-dark), inset 0 3px 0 var(--wood-lit), inset 3px 0 0 var(--wood-lit), inset 0 -3px 0 var(--wood-dark), inset -3px 0 0 var(--wood-dark);
 }
@@ -78,3 +78,6 @@ input { user-select: text; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
 }
+
+/* Scrolling lists fade out just above the forest floor instead of ending in a hard cut. */
+.fade-out { mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent); }
