@@ -4,7 +4,7 @@ A Spotify + YouTube downloader app. Version 2 of the spec, rewritten Nov 16, 202
 
 This file is the single source of truth for the project. It has two parts:
 
-- **Sections 1â€“11** describe what is being built and why.
+- **Sections 1Ã¢â‚¬â€œ11** describe what is being built and why.
 - **Section 12 (Development log)** records every step of development as it happens. It is updated at the end of each milestone, and whenever a decision changes.
 
 ## 1. Goal
@@ -56,7 +56,7 @@ The provider interface is the important part. Adding a third source later (for e
 These apply to every milestone.
 
 - Downloads stream straight to disk. Nothing large is held in memory.
-- At most 2â€“3 downloads run at once (adjustable in Settings).
+- At most 2Ã¢â‚¬â€œ3 downloads run at once (adjustable in Settings).
 - Only one download at a time reads a video's details, because that step starts Deno, which takes up to 300 MB for a second or two. The downloading itself still runs in parallel.
 - Audio is kept in its original format unless I ask for a conversion.
 - yt-dlp and other heavy libraries are loaded only when first needed, so the app starts fast.
@@ -118,7 +118,7 @@ Rules that keep this compatible with the efficiency goal:
 - A "reduce motion" switch in Settings turns the game-like motion down.
 - All colours, fonts, spacing and motion timings live in one theme file so the look is easy to change.
 
-**When design work starts:** at milestone 6, not before. Milestones 1â€“5 have no visuals at all. Milestone 6 begins with a style concept (palette, fonts, one mocked-up screen, a motion sample) that I approve before any real screen is built. Collecting references and sketching ideas earlier is fine; building design earlier is not, because the screens depend on what the engine can actually report.
+**When design work starts:** at milestone 6, not before. Milestones 1Ã¢â‚¬â€œ5 have no visuals at all. Milestone 6 begins with a style concept (palette, fonts, one mocked-up screen, a motion sample) that I approve before any real screen is built. Collecting references and sketching ideas earlier is fine; building design earlier is not, because the screens depend on what the engine can actually report.
 
 ## 8. Requirements and dependencies
 
@@ -207,7 +207,7 @@ Newest entry at the bottom. Each entry records: date, what was done, decisions m
 | 5 | API | Done, Nov 16, 2026 |
 | 6 | Design concept | Direction approved Nov 16, 2026. Deep green `#063420` with the Foxglove pink accent |
 | 7 | UI v1 in its window | Done, Nov 17, 2026. Tried by hand by me |
-| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 1 done (forest, signs, wide video cards). Waiting for my mascot choice |
+| 8 | Polish and the real design pass | Part 1 done (measurements, error messages, rough spots). Design pass, round 2 done (mushroom mascot, standing sign, path, fuller back trees). Finished-download moment still open |
 | 9 | Repo hygiene | Not started (optional) |
 
 ### Nov 16, 2026: Milestone 0, spec review and planning
@@ -1099,3 +1099,20 @@ My answers to the design questions:
 - The finished-download moment (waiting on purpose).
 - The mascot (waiting for my choice).
 - Still open from part 1: choosing a different match for a Spotify song, and memory while downloading.
+
+### Nov 17, 2026: Milestone 8, design pass round 2: my first notes on the forest
+
+What I said after seeing round 1: I really like the background as a first version, and the big trees in front look massive. Four things to change:
+
+| Note | What was done |
+| --- | --- |
+| I like the mushroom mascot most | The mushroom is the mascot. It sits in the title bar at 32 pixels (`ui/src/art/mascot.png`, written by `design/make_mascots.py`) |
+| The sign hangs in mid-air | The sign now stands low on the screen, and its posts reach down into the grass |
+| The brown parts of the floor cut off harshly | The path was mostly hidden under the status bar, so only patches showed. It is now a winding band higher up, with soft dotted edges on both sides, unbroken across the window |
+| The trees in the back are a bit thin | The far row is about half again as wide, the middle row about 40% wider with thicker trunks |
+
+Also: the front ferns were moved up a little so the status bar no longer hides them.
+
+**What was tested:** looked at in the browser view at 1120 by 760 (Home, empty). Only the picture and styles changed, the engine is untouched.
+
+**Not done:** the finished-download moment; I have not said yet what else I would change in the forest.

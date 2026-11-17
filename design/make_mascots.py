@@ -144,5 +144,20 @@ def main() -> None:
     print(out)
 
 
+def save_chosen(name: str) -> None:
+    """The chosen mascot on its own, 16 by 16 with a see-through background, for the title bar."""
+    rows = MASCOTS[name].strip("\n").split("\n")
+    data = b"".join(b"\x00" + b"".join(rgb(LETTERS[letter]) + b"\xff" if letter != "." else b"\x00\x00\x00\x00" for letter in line) for line in rows)
+
+    def chunk(kind: bytes, body: bytes) -> bytes:
+        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
+
+    out = Path(__file__).resolve().parents[1] / "ui" / "src" / "art" / "mascot.png"
+    out.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 16, 16, 8, 6, 0, 0, 0))
+                    + chunk(b"IDAT", zlib.compress(data, 9)) + chunk(b"IEND", b""))
+    print(out)
+
+
 if __name__ == "__main__":
+    save_chosen("mushroom")   # chosen by the owner, Nov 17, 2026
     main()

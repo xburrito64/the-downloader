@@ -19,6 +19,7 @@ import zlib
 from pathlib import Path
 
 W, H = 640, 400
+FERN_BASE = 394   # the front ferns stand a little above the bottom edge, which the status bar covers
 
 COLOURS = {
     # backdrop, top (deep canopy) to bottom (light between the trunks)
@@ -125,16 +126,17 @@ def ground_line(x: int) -> int:
 def ground() -> None:
     for x in range(W):
         top = ground_line(x)
-        path = int(386 + wave(x, (2.5, 2, 2.2), (1.5, 5, 0.3)))
+        path = 379 + wave(x, (2.5, 2, 2.2), (1.2, 5, 0.3))       # the middle of the dirt path
+        half = 3.2 + wave(x, (0.9, 4, 1.1), (0.6, 9, 2.0))         # half its thickness
         for y in range(top, H):
             colour = "grass"
             if y == top and rng.random() < 0.55:
                 colour = "grass_lit"
             elif y > top + 2 and rng.random() < 0.06:
                 colour = "grass_dark"
-            if y >= path:
-                depth = min(1.0, (y - path + 1) / 4)
-                if dithered(x, y, depth):
+            inside = 1 - (abs(y - path) - half) / 3.5              # 1 on the path, fading to 0 over a few rows
+            if inside > 0 and y > top + 3:
+                if dithered(x, y, min(1.0, inside)):
                     colour = "dirt_lit" if rng.random() < 0.07 else "dirt"
             put(x, y, colour)
         if rng.random() < 0.3:                     # blades of grass standing above the line
@@ -206,8 +208,8 @@ def fern(x: int, size: int) -> None:
         reach = size * (1 - abs(frond) / 5)
         for step in range(int(reach)):
             droop = (step / reach) ** 2 * size * 0.45
-            put(x + int(frond * step * 0.42), H - 1 - int(step * 0.9 - droop), "fern")
-            put(x + int(frond * step * 0.42), H - int(step * 0.9 - droop), "fern")
+            put(x + int(frond * step * 0.42), FERN_BASE - 1 - int(step * 0.9 - droop), "fern")
+            put(x + int(frond * step * 0.42), FERN_BASE - int(step * 0.9 - droop), "fern")
 
 
 def sparks(count: int) -> None:
@@ -233,9 +235,9 @@ def save(path: Path) -> None:
 
 def main() -> None:
     backdrop()
-    row_of_pines(352, (55, 115), (7, 15), 17, ("far", "far", "far_lit"), 0, 0.08)
+    row_of_pines(352, (55, 115), (9, 17), 25, ("far", "far", "far_lit"), 0, 0.08)
     mist(318, 356, "glow", 0.7)
-    row_of_pines(358, (120, 195), (24, 42), 29, ("mid_dark", "mid", "mid_lit"), 3, 0.14)
+    row_of_pines(358, (120, 195), (28, 46), 41, ("mid_dark", "mid", "mid_lit"), 4, 0.14)
     mist(336, 362, "sky3", 0.45)
     row_of_pines(366, (215, 330), (58, 96), 46, ("near_dark", "near", "near_lit"), 6, 0.2)
     ground()

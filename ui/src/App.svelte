@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { windowApi } from "./lib/api.js";
+  import mascot from "./art/mascot.png";
   import { activeCount, app, start } from "./lib/state.svelte.js";
   import Home from "./screens/Home.svelte";
   import Queue from "./screens/Queue.svelte";
@@ -56,12 +57,8 @@
 <div class="window">
   <div class="forest" aria-hidden="true"></div>
   <header class="titlebar pywebview-drag-region" ondblclick={inWindow ? toggleMaximize : null} role="presentation">
-    <!-- placeholder mascot: a small original pixel wisp. This spot is for the owner's own art (milestone 8). -->
-    <svg class="wisp" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">
-      <path fill="var(--accent)" d="M3 0h2v1h1v1h1v3h-1v1h-1v1h-2v-1h-1v-1h-1v-3h1v-1h1z"/>
-      <path fill="var(--edge)" d="M2 3h1v1h-1zM5 3h1v1h-1z"/>
-      <path fill="var(--ink)" d="M3 1h1v1h-1z"/>
-    </svg>
+    <!-- the mascot: a 16 by 16 pixel mushroom, drawn by design/make_mascots.py -->
+    <img class="mascot" src={mascot} alt="" draggable="false">
     <h2>THE Downloader</h2>
     {#if inWindow}
       <div class="winkeys">
@@ -132,7 +129,7 @@
   }
   .titlebar { display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; background: var(--panel-glass); }
   .titlebar h2 { font: 400 26px/1 var(--font-display); letter-spacing: .5px; flex: 1; pointer-events: none; }
-  .wisp { width: 22px; height: 22px; flex: none; pointer-events: none; }
+  .mascot { width: 32px; height: 32px; margin: -4px 0 -2px; flex: none; pointer-events: none; image-rendering: pixelated; }
   .winkeys { display: flex; gap: 8px; }
   .winkeys button {
     width: 34px; height: 24px; border: 0; border-radius: 6px; background: var(--raised); color: var(--ink); cursor: pointer;

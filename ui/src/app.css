@@ -55,10 +55,10 @@ input { user-select: text; }
 .head .sub { color: var(--ink-soft); }
 /* an empty screen says so on a wooden sign, and lets the forest show */
 .empty {
-  align-self: flex-start; position: relative; max-width: 46ch; margin: 6px 0 0 6px; padding: 14px 20px 16px; color: var(--ink);
+  align-self: flex-start; position: relative; max-width: 46ch; margin: auto 0 118px 6px;   /* low on the screen, so its posts reach the grass */ padding: 14px 20px 16px; color: var(--ink);
   background: var(--wood); border-radius: 6px; box-shadow: inset 0 4px 0 var(--wood-lit), inset 0 -4px 0 var(--wood-dark), 0 5px 0 var(--edge);
 }
-.empty::before, .empty::after { content: ""; position: absolute; top: 100%; width: 12px; height: 46px; background: var(--wood); box-shadow: inset 4px 0 0 var(--wood-lit), inset -4px 0 0 var(--wood-dark); }
+.empty::before, .empty::after { content: ""; position: absolute; top: 100%; width: 12px; height: 86px; background: var(--wood); box-shadow: inset 4px 0 0 var(--wood-lit), inset -4px 0 0 var(--wood-dark); }
 .empty::before { left: 34px; }
 .empty::after { right: 34px; }
 .empty strong { display: block; font: 400 30px/1.1 var(--font-display); margin-bottom: 4px; }
